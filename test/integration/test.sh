@@ -22,14 +22,20 @@ curl -X POST "$BASE_URL/login/end" -d @endLogin.json -H "content-type: applicati
 #
 # Get user info
 #
+echo 'Calling get user info ...'
+curl -X GET "$BASE_URL/userInfo" | jq
 
 #
 # Get claims
 #
+echo 'Calling get claims ...'
+curl -X GET "$BASE_URL/claims" | jq
 
 #
 # Refresh token
 #
+echo 'Calling refresh token ...'
+curl -X POST "$BASE_URL/refresh"
 
 #
 # Logout
