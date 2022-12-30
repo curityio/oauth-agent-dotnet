@@ -1,8 +1,6 @@
 DEPLOYMENT SETUP
 ----------------
-1. Get logging under better control
-
-2. Move tests to XUnit and check output
+1. Move tests to XUnit and check output
 
 TEST DRIVEN
 -----------
