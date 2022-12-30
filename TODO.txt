@@ -1,8 +1,6 @@
 DEPLOYMENT SETUP
 ----------------
-1. Move tests to XUnit and recheck Docker build
-
-2. Get CORS working
+1. Get CORS working
 
 TEST DRIVEN
 -----------
