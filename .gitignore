@@ -1,4 +1,5 @@
 bin
 obj
+data
 .DS_Store
 license.json
