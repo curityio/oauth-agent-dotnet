@@ -1,6 +1,8 @@
 DEPLOYMENT SETUP
 ----------------
-1. Get CORS working
+1. CORS OPTIONS requests returning 405
+
+2. Update Jira
 
 TEST DRIVEN
 -----------
@@ -11,5 +13,3 @@ TEST DRIVEN
 3. Cookies working
 
 4. Encryption working
-
-5. Update Jira
