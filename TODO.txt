@@ -1,0 +1,17 @@
+0. README and other resources
+
+1. Complete mock implementations
+
+2. Move tests to XUnit and get Docker deployment working
+
+3. Config working
+
+4. CORS working
+
+5. Error responses and logging
+
+6. Cookies working
+
+7. Encryption working
+
+8. Docker deployment
