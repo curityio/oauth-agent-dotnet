@@ -1,9 +1,12 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Hosting;
-
-namespace OAuthAgent
+namespace IO.Curity.OAuthAgent
 {
+    using System.IO;
+    using Microsoft.AspNetCore.Builder;
+    using Microsoft.AspNetCore.Hosting;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.Logging;
+
     public class Program
     {
         public static void Main(string[] args)
@@ -13,16 +16,41 @@ namespace OAuthAgent
 
         private static IWebHost BuildWebHost()
         {
-            int port = 8080;
-            return new WebHostBuilder()
+            var configurationRoot = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: true)
+                .AddJsonFile("appsettings-dev.json", optional: true)
+                .Build();
 
+            var configuration = new OAuthAgentConfiguration();
+            if (File.Exists("appsettings-dev.json"))
+            {
+                configurationRoot.GetSection("OAuthAgentConfiguration")
+                    .Bind(configuration);
+            }
+            else
+            {
+                configuration.FromEnvironment();
+            }
+
+            return new WebHostBuilder()
+                .ConfigureLogging(loggingBuilder => {
+                    
+                    loggingBuilder.ClearProviders();
+                    loggingBuilder.AddConfiguration(configurationRoot.GetSection("Logging"));
+                    loggingBuilder.AddConsole();
+                    
+                })
                 .UseKestrel(options =>
                 {
-                    options.Listen(System.Net.IPAddress.Any, port, listenOptions =>
+                    options.Listen(System.Net.IPAddress.Any, configuration.Port, listenOptions =>
                     {
+                        if (!string.IsNullOrWhiteSpace(configuration.ServerCertPath))
+                        {
+                            listenOptions.UseHttps(configuration.ServerCertPath, configuration.ServerCertPassword);
+                        }
                     });
                 })
-
                 .UseStartup<Startup>()
                 .Build();
         }

@@ -1,5 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
+  
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Remove="test\**\*" />
+    <Content Remove="appsettings-dev.json" />
+  </ItemGroup>
+
 </Project>

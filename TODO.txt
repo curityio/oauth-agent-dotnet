@@ -1,7 +1,6 @@
 DEPLOYMENT SETUP
 ----------------
-1. Config working and code for SSL certs
-   Get logging under better control
+1. Get logging under better control
 
 2. Move tests to XUnit and check output
 
