@@ -35,7 +35,7 @@ Build the OAuth agent into a Docker image:
 
 ```bash
 dotnet publish oauth-agent.csproj -c Release -r linux-x64 --no-self-contained
-docker build -f Dockerfile -t oauthagent:1.0.0 .
+docker build -t oauthagent:1.0.0 .
 ```
 
 Then deploy the Docker image with environment variables similar to these:

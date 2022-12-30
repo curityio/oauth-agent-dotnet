@@ -1,10 +1,9 @@
 DEPLOYMENT SETUP
 ----------------
-1. Get Docker deployment working
+1. Config working and code for SSL certs
+   Get logging under better control
 
 2. Move tests to XUnit and check output
-
-3. Config working and code for SSL certs
 
 TEST DRIVEN
 -----------
@@ -18,8 +17,8 @@ TEST DRIVEN
 
 5. Encryption working
 
+6. Update Jira
+
 TESTING
 -------
-1. Spin up idsvr
-
-2. spa-deployments
+1. Spin up idsvr and run end-to-end tests
