@@ -1,15 +1,18 @@
-DEPLOYMENT SETUP
-----------------
-1. CORS OPTIONS requests returning 405
-
-2. Update Jira
-
 TEST DRIVEN
 -----------
 1. Real implementation for login start
 
-2. Error responses and logging
+2. Cookie code including encryption
 
-3. Cookies working
+3. Real implementation for login end
 
-4. Encryption working
+4. Authorization server client, error responses and logging
+
+ADMIN
+-----
+1. Update Jira
+
+NOTES
+-----
+1. .NET requires both Origin and Access-Control-Request-Method in order for CORS to work
+    Use this in tests, and also Access-Control-Request-Headers if needed
