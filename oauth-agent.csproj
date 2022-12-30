@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="test\**" />
     <Content Remove="test\**\*" />
     <Content Remove="appsettings-dev.json" />
   </ItemGroup>

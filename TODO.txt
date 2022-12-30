@@ -1,21 +1,17 @@
 DEPLOYMENT SETUP
 ----------------
-1. Move tests to XUnit and check output
+1. Move tests to XUnit and recheck Docker build
+
+2. Get CORS working
 
 TEST DRIVEN
 -----------
 1. Real implementation for login start
 
-2. CORS working
+2. Error responses and logging
 
-3. Error responses and logging
+3. Cookies working
 
-4. Cookies working
+4. Encryption working
 
-5. Encryption working
-
-6. Update Jira
-
-TESTING
--------
-1. Spin up idsvr and run end-to-end tests
+5. Update Jira
