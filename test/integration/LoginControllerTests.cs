@@ -138,7 +138,7 @@ namespace IO.Curity.OAuthAgent.Test
                 response.EnsureSuccessStatusCode();
 
                 var data = await response.Content.ReadFromJsonAsync<StartAuthorizationResponse>();
-                Assert.True(data.AuthorizationRequestUrl.Length > 0);
+                Assert.True(data.AuthorizationRequestUrl.Contains($"client_id={this.state.Configuration.ClientID}"));
             }
         }
 

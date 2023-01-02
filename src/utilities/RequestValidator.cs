@@ -18,14 +18,14 @@ namespace IO.Curity.OAuthAgent.Utilities
             if (options.RequireTrustedOrigin)
             {
                 var origin = request.Headers.Origin.FirstOrDefault() ?? "";
-                if (!this.isValidOrigin(origin))
+                if (!this.IsValidOrigin(origin))
                 {
                     throw new UnauthorizedException($"The call is from an untrusted web origin: {origin}");
                 }
             }
         }
 
-        private bool isValidOrigin(string origin)
+        private bool IsValidOrigin(string origin)
         {
             if (!string.IsNullOrWhiteSpace(origin))
             {

@@ -9,23 +9,32 @@ namespace IO.Curity.OAuthAgent.Controllers
     [Route("oauth-agent")]
     public class LoginController : Controller
     {
+        private readonly LoginHandler loginHandler;
         private readonly RequestValidator requestValidator;
         
-        public LoginController(RequestValidator requestValidator)
+        public LoginController(LoginHandler loginHandler, RequestValidator requestValidator)
         {
+            this.loginHandler = loginHandler;
             this.requestValidator = requestValidator;
         }
 
-
+        /*
+         * Create the OpenID Connect request URL and set temporary cookies with the state and code verifier
+         */
         [HttpPost("login/start")]
-        public async Task<StartAuthorizationResponse> StartLogin(
+        public StartAuthorizationResponse StartLogin(
             [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] StartAuthorizationParameters parameters)
         {
             this.requestValidator.ValidateRequest(this.HttpContext.Request, new RequestValidationOptions{RequireCsrfHeader = false});
+
+            var authorizationRequestData = this.loginHandler.CreateAuthorizationRequest(parameters);
         
-            return new StartAuthorizationResponse("https://login/example/com/authorize");
+            return new StartAuthorizationResponse(authorizationRequestData.AuthorizationRequestUrl);
         }
 
+        /*
+         * Handle OpenID Connect front channel responses, redeem the code for tokens, and write cookies
+         */
         [HttpPost("login/end")]
         public async Task<EndAuthorizationResponse> EndLogin([FromBody] EndAuthorizationRequest request)
         {

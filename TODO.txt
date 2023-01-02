@@ -1,19 +1,12 @@
 TEST DRIVEN
 -----------
-1. Real login start implementation
-   Test asserts a client ID in the response URL
-   Login Handler injected
+1. Get cookie issuing written and login flow better on track
+   Authorization server client
 
-2. Cookie issuing and encryption for login start
-   Cookie decryption in login end
+2. Wiremock to add, in order to write login end tests
 
-3. Authorization server client
-   Cookie completion for login
-
-4. Other controller operations
+3. Other controller operations and tests
    Test deployment
-
-5. Wiremock to add
 
 ADMIN
 -----

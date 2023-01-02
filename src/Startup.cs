@@ -58,7 +58,9 @@ namespace IO.Curity.OAuthAgent
 
         public void ConfigureDependencies(IServiceCollection services)
         {
+            services.AddScoped<LoginHandler>();
             services.AddScoped<RequestValidator>();
+            services.AddScoped<RandomStringGenerator>();
         }
     }
 }
