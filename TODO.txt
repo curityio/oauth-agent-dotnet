@@ -1,17 +1,17 @@
 TEST DRIVEN
 -----------
-1. Get bash script working
+1. Get bash script more fully working
+   CSRF cookie handling needs completing so that authenticated page load works
 
-2. Authorization client exception is incomplete
-   CSRF cookie handling needs completing
+2. Authorization client exception handling needs completing
 
-3. Test deployment and decryption in the gateway
-   Ensore no decryption incompatibilities
-
-4. Wiremock to add
+3. Wiremock to add
    Complete login end tests
 
-5. Other controller operations and tests
+4. Other controller operations and tests
+
+5. Test deployment and decryption in the gateway
+   Ensore no decryption incompatibilities
 
 ADMIN
 -----

@@ -57,6 +57,7 @@ echo '1. OPTIONS with invalid web origin was not granted access'
 echo '2. Testing OPTIONS request with a valid web origin ...'
 HTTP_STATUS=$(curl -i -s -X OPTIONS "$TOKEN_HANDLER_BASE_URL/login/start" \
 -H "origin: $WEB_BASE_URL" \
+-H "access-control-request-method: POST" \
 -o $RESPONSE_FILE -w '%{http_code}')
 if [ "$HTTP_STATUS" != '200'  ] && [ "$HTTP_STATUS" != '204' ]; then
   echo "*** Problem encountered requesting cross origin access, status: $HTTP_STATUS"
