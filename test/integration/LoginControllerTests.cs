@@ -1,6 +1,7 @@
 namespace IO.Curity.OAuthAgent.Test
 {
     using System.Linq;
+    using System.Net;
     using System.Net.Http;
     using System.Net.Http.Json;
     using System.Threading.Tasks;
@@ -21,7 +22,7 @@ namespace IO.Curity.OAuthAgent.Test
         public LoginControllerTests(IntegrationTestsState state)
         {
             this.state = state;
-            this.baseUrl = "http://localhost:8080/oauth-agent";
+            this.baseUrl = "http://api.example.local:8080/oauth-agent";
         }
 
         [Fact]
@@ -142,14 +143,32 @@ namespace IO.Curity.OAuthAgent.Test
             }
         }
 
-        /*
-        [Fact(Skip = "Not implemented")]
-        public async Task LoginController_EndLoginWithCodeResponseAndValidCookies_ReturnsAuthenticationHandled()
+        /*[Fact]
+        public async Task LoginController_TEMP()
         {
-            // Requires cookies
+            // Needs a shared performLogin test routine
+            using (var handler = new HttpClientHandler { CookieContainer = new CookieContainer() })
+            {
+                using (var client = new HttpClient(handler))
+                {
+                    client.DefaultRequestHeaders.Add("origin", this.state.Configuration.TrustedWebOrigins[0]);
+
+                    // Make a first request to set the cookie
+                    var startUrl = $"{this.baseUrl}/login/start";
+                    var request = new HttpRequestMessage(HttpMethod.Post, startUrl);
+                    var response = await client.SendAsync(request);
+                    response.EnsureSuccessStatusCode();
+
+                    // Make a second request to use the cookie
+                    var endUrl = $"{this.baseUrl}/login/end";
+                    var requestData = new EndAuthorizationRequest("https://www.example.local?code=xxxxxx&state=yyyyyy");
+                    var response2 = await client.PostAsJsonAsync(endUrl, requestData);
+                    response.EnsureSuccessStatusCode();
+                }
+            }
         }
 
-        [Fact(Skip = "Not implemented")]
+        /*[Fact(Skip = "Not implemented")]
         public async Task LoginController_EndLoginWithMaliciousState_ReturnsInvalidRequest()
         {
             // Requires cookies

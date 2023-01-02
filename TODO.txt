@@ -1,12 +1,17 @@
 TEST DRIVEN
 -----------
-1. Get cookie issuing written and login flow better on track
-   Authorization server client
+1. Get bash script working
 
-2. Wiremock to add, in order to write login end tests
+2. Authorization client exception is incomplete
+   CSRF cookie handling needs completing
 
-3. Other controller operations and tests
-   Test deployment
+3. Test deployment and decryption in the gateway
+   Ensore no decryption incompatibilities
+
+4. Wiremock to add
+   Complete login end tests
+
+5. Other controller operations and tests
 
 ADMIN
 -----

@@ -1,6 +1,8 @@
 namespace IO.Curity.OAuthAgent
 {
+    using System;
     using System.Text;
+    using System.Threading.Tasks;
     using System.Web;
     using IO.Curity.OAuthAgent.Entities;
     using IO.Curity.OAuthAgent.Utilities;
@@ -39,6 +41,12 @@ namespace IO.Curity.OAuthAgent
             });
         
             return new AuthorizationRequestData(url.ToString(), codeVerifier, state);
+        }
+
+        public async Task<OAuthQueryParams> HandleAuthorizationResponse(string pageUrl)
+        {
+            var data = HttpUtility.ParseQueryString(new Uri(pageUrl).Query);
+            return new OAuthQueryParams(data["code"], data["state"]);
         }
     }
 }

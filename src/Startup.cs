@@ -58,9 +58,13 @@ namespace IO.Curity.OAuthAgent
 
         public void ConfigureDependencies(IServiceCollection services)
         {
-            services.AddScoped<LoginHandler>();
-            services.AddScoped<RequestValidator>();
-            services.AddScoped<RandomStringGenerator>();
+            // These classes are stateless and safe to be created as singletons
+            services.AddSingleton<LoginHandler>();
+            services.AddSingleton<CookieManager>();
+            services.AddSingleton<LoginHandler>();
+            services.AddSingleton<AuthorizationServerClient>();
+            services.AddSingleton<IdTokenValidator>();
+            services.AddSingleton<RequestValidator>();
         }
     }
 }
