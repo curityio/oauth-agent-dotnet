@@ -54,8 +54,7 @@ curl -X POST http://api.example.local:8080/oauth-agent/login/start \
 Run some tests that require only a running OAuth Agent, with a mocked Identity Server:
 
 ```bash
-cd test/integration
-dotnet test -l "console;verbosity=normal"
+./test.sh
 ```
 
 ## Run End-to-End Tests

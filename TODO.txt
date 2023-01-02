@@ -1,18 +1,27 @@
 TEST DRIVEN
 -----------
-1. Real implementation for login start
+1. Stub out all logincontroller tests and skip those that cannot pass
 
-2. Cookie code including encryption
+2. Request validator
+   Throw errors of a known type
+   Catch in middleware and return
+   Check error codes in tests
+   Assert error codes in failure tests that do a POST
 
-3. Real implementation for login end
+3. Real login start implementation and assert client ID in response URL
+   Complete login start tests
+   Cookie issuing and encryption
+   All tests pass
 
-4. Authorization server client, error responses and logging
+4. Real login end
+   Authorization server client
+
+5. Wiremock to add
 
 ADMIN
 -----
-1. Update Jira
+1. Kotlin ID Token validation errors to include description
 
-NOTES
------
-1. .NET requires both Origin and Access-Control-Request-Method in order for CORS to work
-    Use this in tests, and also Access-Control-Request-Headers if needed
+2. Node.js ID token validation, issuer check only if ISSUER environment variable is configured
+
+3. Update Jira before Tuesday

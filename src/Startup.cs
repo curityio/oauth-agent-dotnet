@@ -3,6 +3,8 @@ namespace IO.Curity.OAuthAgent
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.DependencyInjection;
+    using IO.Curity.OAuthAgent.Middleware;
+    using IO.Curity.OAuthAgent.Utilities;
 
     public class Startup
     {
@@ -16,12 +18,15 @@ namespace IO.Curity.OAuthAgent
         {
             app.UseRouting();
             app.UseCors();
+
+            this.ConfigureMiddleware(app);
+
             app.UseEndpoints(endpoints => {
                 endpoints.MapControllers();
             });
         }
 
-        public void ConfigureServices(IServiceCollection services)
+         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCors(options => {
 
@@ -36,6 +41,17 @@ namespace IO.Curity.OAuthAgent
             });
 
             services.AddControllers();
+            this.ConfigureDependencies(services);
+        }
+
+        private void ConfigureMiddleware(IApplicationBuilder app)
+        {
+            app.UseMiddleware<UnhandledExceptionMiddleware>();
+        }
+
+        public void ConfigureDependencies(IServiceCollection services)
+        {
+            services.AddScoped<RequestValidator>();
         }
     }
 }
