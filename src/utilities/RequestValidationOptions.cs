@@ -5,5 +5,11 @@ namespace IO.Curity.OAuthAgent.Utilities
         public bool RequireTrustedOrigin { get; set; }
 
         public bool RequireCsrfHeader { get; set; }
+
+        public RequestValidationOptions()
+        {
+            this.RequireTrustedOrigin = true;
+            this.RequireCsrfHeader = true;
+        }
     }
 }

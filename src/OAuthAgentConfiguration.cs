@@ -20,6 +20,7 @@ namespace IO.Curity.OAuthAgent
         public string CookieDomain { get; set; }
         public string CookieEncryptionKey  { get; set; }
 
+        public string Issuer { get; set; }
         public string AuthorizeEndpoint { get; set; }
         public string LogoutEndpoint { get; set; }
         public string TokenEndpoint { get; set; }
@@ -27,26 +28,27 @@ namespace IO.Curity.OAuthAgent
 
         public void FromEnvironment()
         {
-            Port = int.Parse(Get("PORT"));
-            ServerCertPath = Get("SERVER_CERT_P12_PATH", false);
-            ServerCertPassword = Get("SERVER_CERT_P12_PASSWORD", false);
+            this.Port = int.Parse(Get("PORT"));
+            this.ServerCertPath = Get("SERVER_CERT_P12_PATH", false);
+            this.ServerCertPassword = Get("SERVER_CERT_P12_PASSWORD", false);
 
-            ClientID = Get("CLIENT_ID");
-            ClientSecret = Get("CLIENT_SECRET");
-            RedirectUri = Get("REDIRECT_URI");
-            PostLogoutRedirectUri = Get("POST_LOGOUT_REDIRECT_URI");
-            Scope = Get("SCOPE");
+            this.ClientID = Get("CLIENT_ID");
+            this.ClientSecret = Get("CLIENT_SECRET");
+            this.RedirectUri = Get("REDIRECT_URI");
+            this.PostLogoutRedirectUri = Get("POST_LOGOUT_REDIRECT_URI");
+            this.Scope = Get("SCOPE");
 
-            TrustedWebOrigins = new String[] { Get("TRUSTED_WEB_ORIGIN") };
-            CorsEnabled = bool.Parse(Get("CORS_ENABLED"));
-            CookieNamePrefix = Get("COOKIE_NAME_PREFIX");
-            CookieDomain = Get("COOKIE_DOMAIN");
-            CookieEncryptionKey = Get("COOKIE_ENCRYPTION_KEY");
+            this.TrustedWebOrigins = new String[] { Get("TRUSTED_WEB_ORIGIN") };
+            this.CorsEnabled = bool.Parse(Get("CORS_ENABLED"));
+            this.CookieNamePrefix = Get("COOKIE_NAME_PREFIX");
+            this.CookieDomain = Get("COOKIE_DOMAIN");
+            this.CookieEncryptionKey = Get("COOKIE_ENCRYPTION_KEY");
             
-            AuthorizeEndpoint = Get("AUTHORIZE_ENDPOINT");
-            LogoutEndpoint = Get("LOGOUT_ENDPOINT");
-            TokenEndpoint = Get("TOKEN_ENDPOINT");
-            UserInfoEndpoint = Get("USERINFO_ENDPOINT");
+            this.Issuer = Get("ISSUER");
+            this.AuthorizeEndpoint = Get("AUTHORIZE_ENDPOINT");
+            this.LogoutEndpoint = Get("LOGOUT_ENDPOINT");
+            this.TokenEndpoint = Get("TOKEN_ENDPOINT");
+            this.UserInfoEndpoint = Get("USERINFO_ENDPOINT");
         }
 
         private String Get(string key, bool mandatory=true)

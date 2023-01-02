@@ -3,7 +3,7 @@ namespace IO.Curity.OAuthAgent
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.DependencyInjection;
-    using IO.Curity.OAuthAgent.Middleware;
+    using IO.Curity.OAuthAgent.Exceptions;
     using IO.Curity.OAuthAgent.Utilities;
 
     public class Startup
@@ -17,7 +17,11 @@ namespace IO.Curity.OAuthAgent
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             app.UseRouting();
-            app.UseCors();
+            
+            if (this.configuration.CorsEnabled)
+            {
+                app.UseCors();
+            }
 
             this.ConfigureMiddleware(app);
 
@@ -26,19 +30,22 @@ namespace IO.Curity.OAuthAgent
             });
         }
 
-         public void ConfigureServices(IServiceCollection services)
+        public void ConfigureServices(IServiceCollection services)
         {
-            services.AddCors(options => {
+            if (this.configuration.CorsEnabled)
+            {
+                services.AddCors(options => {
 
-                options.AddDefaultPolicy(
-                    policy  =>
-                    {
-                        policy.WithOrigins(this.configuration.TrustedWebOrigins)
-                            .AllowAnyHeader()
-                            .AllowAnyMethod();
-                        policy.AllowCredentials();
-                    });
-            });
+                    options.AddDefaultPolicy(
+                        policy  =>
+                        {
+                            policy.WithOrigins(this.configuration.TrustedWebOrigins)
+                                .AllowAnyHeader()
+                                .AllowAnyMethod();
+                            policy.AllowCredentials();
+                        });
+                });
+            }
 
             services.AddControllers();
             this.ConfigureDependencies(services);

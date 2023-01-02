@@ -12,7 +12,7 @@ namespace IO.Curity.OAuthAgent
     {
         public static void Main(string[] args)
         {
-            BuildWebHost().Run();
+            Program.BuildWebHost().Run();
         }
 
         private static IWebHost BuildWebHost()

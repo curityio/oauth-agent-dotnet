@@ -1,20 +1,17 @@
 TEST DRIVEN
 -----------
-1. Stub out all logincontroller tests and skip those that cannot pass
+1. Real login start implementation
+   Test asserts a client ID in the response URL
+   Login Handler injected
 
-2. Request validator
-   Throw errors of a known type
-   Catch in middleware and return
-   Check error codes in tests
-   Assert error codes in failure tests that do a POST
+2. Cookie issuing and encryption for login start
+   Cookie decryption in login end
 
-3. Real login start implementation and assert client ID in response URL
-   Complete login start tests
-   Cookie issuing and encryption
-   All tests pass
+3. Authorization server client
+   Cookie completion for login
 
-4. Real login end
-   Authorization server client
+4. Other controller operations
+   Test deployment
 
 5. Wiremock to add
 

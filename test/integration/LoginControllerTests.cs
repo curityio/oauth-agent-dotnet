@@ -1,11 +1,11 @@
 namespace IO.Curity.OAuthAgent.Test
 {
-    using System.Collections.Generic;
     using System.Linq;
     using System.Net.Http;
     using System.Net.Http.Json;
     using System.Threading.Tasks;
     using Xunit;
+    using IO.Curity.OAuthAgent.Exceptions;
     using IO.Curity.OAuthAgent.Entities;
 
     /*
@@ -72,18 +72,20 @@ namespace IO.Curity.OAuthAgent.Test
             }
         }
 
-        [Fact(Skip="Not implemented")]
+        [Fact]
         public async Task LoginController_EndLoginPostForInvalidOrigin_Returns401Response()
         {
             var url = $"{this.baseUrl}/login/end";
             using (var client = new HttpClient())
             {
-                var request = new HttpRequestMessage(HttpMethod.Post, url);
-                request.Headers.Add("origin", "http://malicious-site");
+                client.DefaultRequestHeaders.Add("origin", "http://malicious-site");
 
                 var requestData = new EndAuthorizationRequest("https://www.example.com");
                 var response = await client.PostAsJsonAsync(url, requestData);
                 Assert.Equal(401, ((int)response.StatusCode));
+
+                var data = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                Assert.Equal("unauthorized_request", data.Code);
             }
         }
 
@@ -93,10 +95,9 @@ namespace IO.Curity.OAuthAgent.Test
             var url = $"{this.baseUrl}/login/end";
             using (var client = new HttpClient())
             {
-                var request = new HttpRequestMessage(HttpMethod.Post, url);
-                request.Headers.Add("origin", this.state.Configuration.TrustedWebOrigins[0]);
+                client.DefaultRequestHeaders.Add("origin", this.state.Configuration.TrustedWebOrigins[0]);
 
-                var requestData = new EndAuthorizationRequest("https://www.example.com");
+                var requestData = new EndAuthorizationRequest("https://www.example.local");
                 var response = await client.PostAsJsonAsync(url, requestData);
                 response.EnsureSuccessStatusCode();
                 
@@ -107,17 +108,20 @@ namespace IO.Curity.OAuthAgent.Test
             }
         }
 
-        [Fact(Skip = "Not implemented")]
+        [Fact]
         public async Task LoginController_StartLoginPostForInvalidOrigin_Returns401Response()
         {
             var url = $"{this.baseUrl}/login/end";
             using (var client = new HttpClient())
             {
-                var request = new HttpRequestMessage(HttpMethod.Post, url);
-                request.Headers.Add("origin", "http://malicious-site");
-                
-                var response = await client.SendAsync(request);
+                client.DefaultRequestHeaders.Add("origin", "http://malicious-site");
+
+                var requestData = new EndAuthorizationRequest("https://www.example.local");
+                var response = await client.PostAsJsonAsync(url, requestData);
+
                 Assert.Equal(401, ((int)response.StatusCode));
+                var data = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                Assert.Equal("unauthorized_request", data.Code);
             }
         }
 
@@ -138,34 +142,41 @@ namespace IO.Curity.OAuthAgent.Test
             }
         }
 
+        /*
         [Fact(Skip = "Not implemented")]
         public async Task LoginController_EndLoginWithCodeResponseAndValidCookies_ReturnsAuthenticationHandled()
         {
+            // Requires cookies
         }
 
         [Fact(Skip = "Not implemented")]
         public async Task LoginController_EndLoginWithMaliciousState_ReturnsInvalidRequest()
         {
+            // Requires cookies
         }
 
         [Fact(Skip = "Not implemented")]
-        public async Task LoginController_EndLoginWithValidCookies_ReturnsAuthenticatedState()
+        public async Task LoginController_EndLoginWithValidCookies_ReturnsAuthenticatedResponse()
         {
+            // Requires cookies
         }
 
         [Fact(Skip = "Not implemented")]
         public async Task LoginController_EndLoginWithIncorrectlyConfiguredClientSecret_Returns400()
         {
+            // Requires cookies
         }
 
         [Fact(Skip = "Not implemented")]
-        public async Task LoginController_StartLoginWithMisconfiguredClient_ReturnsExpectedError()
+        public async Task LoginController_EndLoginWithInvalidScopeDueToMisconfiguredClient_Returns400Error()
         {
+            // Requires cookies
         }
 
         [Fact(Skip = "Not implemented")]
-        public async Task LoginController_StartLoginWithParameters_Returns401ForExpiredErrors()
+        public async Task LoginController_EndLoginWithLoginRequired_Returns401ForExpiry()
         {
-        }
+            // Requires cookies
+        }*/
     }
 }
