@@ -40,13 +40,13 @@ namespace IO.Curity.OAuthAgent.Test
                 response.EnsureSuccessStatusCode();
 
                 var allowedOrigin = response.Headers.Where(h => h.Key.ToLower() == "access-control-allow-origin");
-                Assert.Equal(0, allowedOrigin.Count());
+                Assert.Empty(allowedOrigin);
 
                 var allowedCredentials = response.Headers.Where(h => h.Key.ToLower() == "access-control-allow-credentials");
-                Assert.Equal(0, allowedCredentials.Count());
+                Assert.Empty(allowedCredentials);
 
                 var allowedMethods = response.Headers.Where(h => h.Key.ToLower() == "access-control-allow-methods");
-                Assert.Equal(0, allowedMethods.Count());
+                Assert.Empty(allowedMethods);
             }
         }
         
@@ -113,13 +113,13 @@ namespace IO.Curity.OAuthAgent.Test
         [Fact]
         public async Task LoginController_StartLoginPostForInvalidOrigin_Returns401Response()
         {
-            var url = $"{this.state.OAuthAgentBaseUrl}/login/end";
+            var url = $"{this.state.OAuthAgentBaseUrl}/login/start";
             using (var client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Add("origin", "http://malicious-site");
 
-                var requestData = new EndAuthorizationRequest("https://www.example.local");
-                var response = await client.PostAsJsonAsync(url, requestData);
+                var request = new HttpRequestMessage(HttpMethod.Post, url);
+                var response = await client.SendAsync(request);
 
                 Assert.Equal(401, ((int)response.StatusCode));
                 var data = await response.Content.ReadFromJsonAsync<ClientErrorResponse>();
@@ -140,7 +140,7 @@ namespace IO.Curity.OAuthAgent.Test
                 response.EnsureSuccessStatusCode();
 
                 var data = await response.Content.ReadFromJsonAsync<StartAuthorizationResponse>();
-                Assert.True(data.AuthorizationRequestUrl.Contains($"client_id={this.state.Configuration.ClientID}"));
+                Assert.Contains($"client_id={this.state.Configuration.ClientID}", data.AuthorizationRequestUrl);
             }
         }
 

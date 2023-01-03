@@ -4,8 +4,8 @@ namespace IO.Curity.OAuthAgent
     using System.Collections.Generic;
     using System.Text.Json;
     using Microsoft.AspNetCore.Http;
+    using Microsoft.Extensions.Logging;
     using IO.Curity.OAuthAgent.Entities;
-    using IO.Curity.OAuthAgent.Exceptions;
     using IO.Curity.OAuthAgent.Utilities;
 
     public class CookieManager
@@ -21,13 +21,16 @@ namespace IO.Curity.OAuthAgent
 
         private readonly OAuthAgentConfiguration configuration;
 
-        public CookieManager(OAuthAgentConfiguration configuration)
+        private readonly ILogger logger;
+
+        public CookieManager(OAuthAgentConfiguration configuration, ILoggerFactory factory)
         {
             this.configuration = configuration;
+            this.logger = factory.CreateLogger<CookieManager>();
         }
 
         /*
-         * Create a temp cookie to store values between the authorization request and response
+         * Create a temp cookie to store values when issuing the authorization request
          */
         public (string, string, CookieOptions) CreateTempLoginStateCookie(string state, string codeVerifier)
         {
@@ -39,33 +42,11 @@ namespace IO.Curity.OAuthAgent
         }
 
         /*
-         * After processing the response, write tokens into cookies, and 
+         * Read back the login state when receiving the authorization response
          */
-        public List<(string, string, CookieOptions)> CreateCookies(TokenResponse tokenResponse, string csrfToken)
+        public TempLoginData DecryptLoginStateCookieSafe(string encryptedCookieValue)
         {
-            var results = new List<(string, string, CookieOptions)>();
-
-            var accessCookie = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey, tokenResponse.AccessToken);
-            results.Add((this.GetCookieName(CookieName.access), accessCookie, this.GetCookieOptions("/")));
-
-            var refreshCookie = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey, tokenResponse.RefreshToken);
-            results.Add((this.GetCookieName(CookieName.refresh), refreshCookie, this.GetCookieOptions("/refresh")));
-            
-            var idCookie = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey, tokenResponse.RefreshToken);
-            results.Add((this.GetCookieName(CookieName.id), idCookie, this.GetCookieOptions("/claims")));
-
-            var csrfCookie = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey, csrfToken);
-            results.Add((this.GetCookieName(CookieName.csrf), csrfCookie, this.GetCookieOptions("/")));
-
-            var tempLoginCookie = "";
-            results.Add((this.GetCookieName(CookieName.login), tempLoginCookie, this.GetDeleteCookieOptions("/")));
-
-            return results;
-        }
-
-        public TempLoginData DecryptLoginStateCookie(string encryptedCookieValue)
-        {
-            var decrypted = DecryptCookieSafe(encryptedCookieValue, true);
+            var decrypted = DecryptCookieSafe(CookieName.login, encryptedCookieValue);
             if (string.IsNullOrWhiteSpace(decrypted))
             {
                 return null;
@@ -74,9 +55,24 @@ namespace IO.Curity.OAuthAgent
             return JsonSerializer.Deserialize<TempLoginData>(decrypted);
         }
 
-        public string DecryptCsrfCookie(string encryptedCookieValue)
+        /*
+         * Handle cookie decryption defensively, in case the browser has leftover cookies with an old encryption key
+         */
+        public string DecryptCookieSafe(CookieName name, string encryptedCookieValue)
         {
-            return DecryptCookieSafe(encryptedCookieValue, true) ?? "";
+            if (!string.IsNullOrWhiteSpace(encryptedCookieValue))
+            {
+                try
+                {
+                    return CookieEncrypter.DecryptCookie(this.configuration.CookieEncryptionKey, encryptedCookieValue);
+                }
+                catch (Exception exception)
+                {
+                    logger.LogDebug(new EventId(), exception, $"Unable to decrypt {name} cookie");
+                }
+            }
+            
+            return "";
         }
 
         public string GetCookieName(CookieName name)
@@ -102,6 +98,69 @@ namespace IO.Curity.OAuthAgent
             throw new ArgumentException("Invalid  cookie name requested");
         }
 
+        /*
+         * After completing a login, return the data needed to write tokens into cookies
+         */
+        public List<(string, string, CookieOptions)> CreateCookies(TokenResponse tokenResponse, string csrfToken)
+        {
+            var results = new List<(string, string, CookieOptions)>();
+
+            results.AddRange(this.WriteTokensToCookies(tokenResponse));
+            
+            var csrfCookie = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey, csrfToken);
+            results.Add((this.GetCookieName(CookieName.csrf), csrfCookie, this.GetCookieOptions("/")));
+
+            var tempLoginCookie = "";
+            results.Add((this.GetCookieName(CookieName.login), tempLoginCookie, this.GetDeleteCookieOptions("/")));
+
+            return results;
+        }
+
+        /*
+         * After refreshing tokens, return the data needed to update cookies containing tokens
+         */
+        public List<(string, string, CookieOptions)> RefreshCookies(TokenResponse tokenResponse)
+        {
+            return this.WriteTokensToCookies(tokenResponse);
+        }
+
+        /*
+         * After loggign out, return the data needed to expire all cookies
+         */
+        public List<(string, string, CookieOptions)> ExpireAllCookies()
+        {
+            var results = new List<(string, string, CookieOptions)>();
+
+            results.Add((this.GetCookieName(CookieName.access), "", this.GetDeleteCookieOptions("/")));
+            results.Add((this.GetCookieName(CookieName.refresh), "", this.GetDeleteCookieOptions("/oauth-agent/refresh")));
+            results.Add((this.GetCookieName(CookieName.id), "", this.GetDeleteCookieOptions("/oauth-agent/claims")));
+            results.Add((this.GetCookieName(CookieName.csrf), "", this.GetDeleteCookieOptions("/")));
+
+            return results;
+        }
+
+        private List<(string, string, CookieOptions)> WriteTokensToCookies(TokenResponse tokenResponse)
+        {
+            var results = new List<(string, string, CookieOptions)>();
+
+            var accessCookie = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey, tokenResponse.AccessToken);
+            results.Add((this.GetCookieName(CookieName.access), accessCookie, this.GetCookieOptions("/")));
+
+            if (!string.IsNullOrWhiteSpace(tokenResponse.RefreshToken))
+            {
+                var refreshCookie = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey, tokenResponse.RefreshToken);
+                results.Add((this.GetCookieName(CookieName.refresh), refreshCookie, this.GetCookieOptions("/oauth-agent/refresh")));
+            }
+            
+            if (!string.IsNullOrWhiteSpace(tokenResponse.IdToken))
+            {
+                var idCookie = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey, tokenResponse.IdToken);
+                results.Add((this.GetCookieName(CookieName.id), idCookie, this.GetCookieOptions("/oauth-agent/claims")));
+            }
+
+            return results;
+        }
+
         private CookieOptions GetCookieOptions(string cookiePath)
         {
             bool useSsl = !string.IsNullOrWhiteSpace(this.configuration.ServerCertPath);
@@ -119,29 +178,6 @@ namespace IO.Curity.OAuthAgent
             var options = this.GetCookieOptions(cookiePath);
             options.Expires = DateTimeOffset.UtcNow - TimeSpan.FromDays(1);
             return options;
-        }
-
-        /*
-         * Handle cookie decryption defensively, in case the browser has leftover cookies with an old encryption key
-         */
-        private string DecryptCookieSafe(string encryptedCookieValue, bool isExpected = false)
-        {
-            if (!string.IsNullOrWhiteSpace(encryptedCookieValue))
-            {
-                try
-                {
-                    return CookieEncrypter.DecryptCookie(this.configuration.CookieEncryptionKey, encryptedCookieValue);
-                }
-                catch (Exception exception)
-                {
-                    if (!isExpected)
-                    {
-                        throw new CookieDecryptionException(exception);
-                    }
-                }
-            }
-
-            return null;
         }
     }
 }

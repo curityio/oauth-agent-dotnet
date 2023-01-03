@@ -2,6 +2,7 @@ namespace IO.Curity.OAuthAgent
 {
     using System.Collections.Generic;
     using System.Net.Http;
+    using System.Net.Http.Headers;
     using System.Net.Http.Json;
     using System.Threading.Tasks;
     using IO.Curity.OAuthAgent.Entities;
@@ -16,6 +17,9 @@ namespace IO.Curity.OAuthAgent
             this.configuration = configuration;
         }
 
+        /*
+         * Send the authorization code and receive tokens
+         */
         public async Task<TokenResponse> RedeemCodeForTokens(string code, string codeVerifier)
         {
             using (var client = new HttpClient())
@@ -45,6 +49,68 @@ namespace IO.Curity.OAuthAgent
                 catch (HttpRequestException exception)
                 {
                     throw new AuthorizationServerException("Connectivity problem during an Authorization Code Grant", exception);
+                }
+            }
+        }
+
+        /*
+         * Send the refresh token and receive a new set of tokens
+         */
+        public async Task<TokenResponse> RefreshAccessToken(string refreshToken)
+        {
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("accept", "application/json");
+                var data = new[]
+                {
+                    new KeyValuePair<string, string>("client_id", this.configuration.ClientID),
+                    new KeyValuePair<string, string>("client_secret", this.configuration.ClientSecret),
+                    new KeyValuePair<string, string>("grant_type", "refresh_token"),
+                    new KeyValuePair<string, string>("refresh_token", refreshToken),
+                };
+
+                try {
+                
+                    var response = await client.PostAsync(this.configuration.TokenEndpoint, new FormUrlEncodedContent(data));
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        throw await this.CreateAuthorizationServerError(response, GrantType.RefreshToken);
+                    }
+
+                    return await response.Content.ReadFromJsonAsync<TokenResponse>();
+                
+                }
+                catch (HttpRequestException exception)
+                {
+                    throw new AuthorizationServerException("Connectivity problem during a Refresh Token Grant", exception);
+                }
+            }
+        }
+
+        /*
+         * Send an access token and receive user info
+         */
+        public async Task<IDictionary<string, object>> GetUserInfo(string accessToken)
+        {
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("accept", "application/json");
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+                try
+                {
+                    var request = new HttpRequestMessage(HttpMethod.Post, this.configuration.UserInfoEndpoint);
+                    var response = await client.SendAsync(request);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        throw await this.CreateAuthorizationServerError(response, GrantType.UserInfo);
+                    }
+
+                    return await response.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+                }
+                catch (HttpRequestException exception)
+                {
+                    throw new AuthorizationServerException("Connectivity problem during a User Info request", exception);
                 }
             }
         }

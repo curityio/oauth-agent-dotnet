@@ -1,6 +1,5 @@
 namespace IO.Curity.OAuthAgent.Controllers
 {
-    using System;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -70,10 +69,15 @@ namespace IO.Curity.OAuthAgent.Controllers
 
             if (isOAuthResponse)
             {
-                // Decrypt the temporary login cookie and verify the state response parameter
-                
+                // Decrypt the temporary login cookie
                 var loginData = this.GetLoginDataFromCookie();
-                if (loginData?.State != queryParams.State)
+                if (loginData == null)
+                {
+                    throw new InvalidCookieException("No valid login cookie was supplied in a call to end login");
+                }
+
+                //  Verify the state response parameter
+                if (loginData.State != queryParams.State)
                 {
                     throw new InvalidStateException();
                 }
@@ -118,14 +122,14 @@ namespace IO.Curity.OAuthAgent.Controllers
             {
                 var csrfCookieName = this.cookieManager.GetCookieName(CookieManager.CookieName.csrf);
                 var csrfCookie = this.Request.Cookies[csrfCookieName];
-                return this.cookieManager.DecryptCsrfCookie(csrfCookie);
+                return this.cookieManager.DecryptCookieSafe(CookieManager.CookieName.csrf, csrfCookie);
             }
 
             return "";
         }
 
         /*
-         * Return data from the login cookie if it exists
+         * Return the temp login cookie if received
          */
         private TempLoginData GetLoginDataFromCookie()
         {
@@ -133,7 +137,7 @@ namespace IO.Curity.OAuthAgent.Controllers
             {
                 var loginCookieName = this.cookieManager.GetCookieName(CookieManager.CookieName.login);
                 var tempLoginCookie = this.Request.Cookies[loginCookieName];
-                return this.cookieManager.DecryptLoginStateCookie(tempLoginCookie);
+                return this.cookieManager.DecryptLoginStateCookieSafe(tempLoginCookie);
             }
 
             return null;
