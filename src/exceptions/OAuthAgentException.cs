@@ -5,7 +5,7 @@ namespace IO.Curity.OAuthAgent.Exceptions
 
     public class OAuthAgentException : Exception
     {
-        public int StatusCode {get; private set; }
+        public int StatusCode {get; set; }
 
         private readonly string code;
         private readonly string logMessage;

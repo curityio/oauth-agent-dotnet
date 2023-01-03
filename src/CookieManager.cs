@@ -5,6 +5,7 @@ namespace IO.Curity.OAuthAgent
     using System.Text.Json;
     using Microsoft.AspNetCore.Http;
     using IO.Curity.OAuthAgent.Entities;
+    using IO.Curity.OAuthAgent.Exceptions;
     using IO.Curity.OAuthAgent.Utilities;
 
     public class CookieManager
@@ -26,7 +27,7 @@ namespace IO.Curity.OAuthAgent
         }
 
         /*
-         * When a login request is created, write a temp cookie with the state and code verifier
+         * Create a temp cookie to store values between the authorization request and response
          */
         public (string, string, CookieOptions) CreateTempLoginStateCookie(string state, string codeVerifier)
         {
@@ -34,41 +35,48 @@ namespace IO.Curity.OAuthAgent
             string serialized = JsonSerializer.Serialize(data);
             string encrypted = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey, serialized);
             
-            string cookieName = $"{this.configuration.CookieNamePrefix}-login";
-            return (cookieName, encrypted, this.GetCookieOptions("/"));
+            return (this.GetCookieName(CookieName.login), encrypted, this.GetCookieOptions("/"));
         }
 
         /*
-         * If a login response is handled, read the stored values, which will be validated
+         * After processing the response, write tokens into cookies, and 
          */
-        public TempLoginData ReadStoredLoginStateCookie(string encryptedCookieValue)
-        {
-            if (string.IsNullOrWhiteSpace(encryptedCookieValue))
-            {
-                return null;
-            }
-            
-            string decrypted = CookieEncrypter.DecryptCookie(this.configuration.CookieEncryptionKey, encryptedCookieValue);
-            return JsonSerializer.Deserialize<TempLoginData>(decrypted);
-        }
-
-        public List<(string, string, CookieOptions)> CreateCookies(TokenResponse tokenResponse)
+        public List<(string, string, CookieOptions)> CreateCookies(TokenResponse tokenResponse, string csrfToken)
         {
             var results = new List<(string, string, CookieOptions)>();
 
-            string accessCookieName = $"{this.configuration.CookieNamePrefix}-at";
-            var accessToken = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey,tokenResponse.AccessToken);
-            results.Add((accessCookieName, accessToken, this.GetCookieOptions("/")));
+            var accessCookie = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey, tokenResponse.AccessToken);
+            results.Add((this.GetCookieName(CookieName.access), accessCookie, this.GetCookieOptions("/")));
 
-            string refreshCookieName = $"{this.configuration.CookieNamePrefix}-auth";
-            var refreshToken = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey,tokenResponse.RefreshToken);
-            results.Add((refreshCookieName, refreshToken, this.GetCookieOptions("/refresh")));
+            var refreshCookie = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey, tokenResponse.RefreshToken);
+            results.Add((this.GetCookieName(CookieName.refresh), refreshCookie, this.GetCookieOptions("/refresh")));
+            
+            var idCookie = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey, tokenResponse.RefreshToken);
+            results.Add((this.GetCookieName(CookieName.id), idCookie, this.GetCookieOptions("/claims")));
 
-            string idCookieName = $"{this.configuration.CookieNamePrefix}-id";
-            var idToken = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey,tokenResponse.RefreshToken);
-            results.Add((idCookieName, idToken, this.GetCookieOptions("/claims")));
+            var csrfCookie = CookieEncrypter.EncryptCookie(this.configuration.CookieEncryptionKey, csrfToken);
+            results.Add((this.GetCookieName(CookieName.csrf), csrfCookie, this.GetCookieOptions("/")));
+
+            var tempLoginCookie = "";
+            results.Add((this.GetCookieName(CookieName.login), tempLoginCookie, this.GetDeleteCookieOptions("/")));
 
             return results;
+        }
+
+        public TempLoginData DecryptLoginStateCookie(string encryptedCookieValue)
+        {
+            var decrypted = DecryptCookieSafe(encryptedCookieValue, true);
+            if (string.IsNullOrWhiteSpace(decrypted))
+            {
+                return null;
+            }
+
+            return JsonSerializer.Deserialize<TempLoginData>(decrypted);
+        }
+
+        public string DecryptCsrfCookie(string encryptedCookieValue)
+        {
+            return DecryptCookieSafe(encryptedCookieValue, true) ?? "";
         }
 
         public string GetCookieName(CookieName name)
@@ -104,6 +112,36 @@ namespace IO.Curity.OAuthAgent
                 HttpOnly = true,
                 SameSite = SameSiteMode.Strict,
             };
+        }
+
+        private CookieOptions GetDeleteCookieOptions(string cookiePath)
+        {
+            var options = this.GetCookieOptions(cookiePath);
+            options.Expires = DateTimeOffset.UtcNow - TimeSpan.FromDays(1);
+            return options;
+        }
+
+        /*
+         * Handle cookie decryption defensively, in case the browser has leftover cookies with an old encryption key
+         */
+        private string DecryptCookieSafe(string encryptedCookieValue, bool isExpected = false)
+        {
+            if (!string.IsNullOrWhiteSpace(encryptedCookieValue))
+            {
+                try
+                {
+                    return CookieEncrypter.DecryptCookie(this.configuration.CookieEncryptionKey, encryptedCookieValue);
+                }
+                catch (Exception exception)
+                {
+                    if (!isExpected)
+                    {
+                        throw new CookieDecryptionException(exception);
+                    }
+                }
+            }
+
+            return null;
         }
     }
 }

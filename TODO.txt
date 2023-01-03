@@ -1,17 +1,19 @@
 TEST DRIVEN
 -----------
-1. Get bash script more fully working
-   CSRF cookie handling needs completing so that authenticated page load works
+1. Authorization client exception handling to complete
+   Use the deserialization technique from client side tests
 
-2. Authorization client exception handling needs completing
+2. ID token validation with MS JWT library
 
-3. Wiremock to add
-   Complete login end tests
+3. Get bash script more fully working, up to token refresh
 
-4. Other controller operations and tests
+4. Review all login related tests
+   Run Kotlin tests and understand how often Wiremock server is created
+   
+5. Other controller operations and tests to complete
 
-5. Test deployment and decryption in the gateway
-   Ensore no decryption incompatibilities
+6. Test deployment and decryption in the gateway
+   Ensure no decryption incompatibilities
 
 ADMIN
 -----

@@ -2,9 +2,9 @@ namespace IO.Curity.OAuthAgent
 {
     using System;
     using System.Text;
-    using System.Threading.Tasks;
     using System.Web;
     using IO.Curity.OAuthAgent.Entities;
+    using IO.Curity.OAuthAgent.Exceptions;
     using IO.Curity.OAuthAgent.Utilities;
 
     public class LoginHandler
@@ -43,10 +43,25 @@ namespace IO.Curity.OAuthAgent
             return new AuthorizationRequestData(url.ToString(), codeVerifier, state);
         }
 
-        public async Task<OAuthQueryParams> HandleAuthorizationResponse(string pageUrl)
+        public OAuthQueryParams HandleAuthorizationResponse(string pageUrl)
         {
             var data = HttpUtility.ParseQueryString(new Uri(pageUrl).Query);
-            return new OAuthQueryParams(data["code"], data["state"]);
+
+            var code = data["code"];
+            var state = data["state"];
+            if (!string.IsNullOrEmpty(code) && !string.IsNullOrEmpty(state)) {
+                return new OAuthQueryParams(code, state);
+            }
+
+            var error = data["error"];
+            if (!string.IsNullOrEmpty(error) && !string.IsNullOrEmpty(state)) {
+
+                throw new AuthorizationResponseException(
+                    error,
+                    data["error_description"] ?? "Login failed at the Authorization Server");
+            }
+
+            return new OAuthQueryParams(null, null);
         }
     }
 }

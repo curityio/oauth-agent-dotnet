@@ -58,13 +58,13 @@ namespace IO.Curity.OAuthAgent
 
         public void ConfigureDependencies(IServiceCollection services)
         {
-            // These classes are stateless and safe to be created as singletons
+            // These objects only store global configuration so are safe to be created as singletons
             services.AddSingleton<LoginHandler>();
             services.AddSingleton<CookieManager>();
-            services.AddSingleton<LoginHandler>();
             services.AddSingleton<AuthorizationServerClient>();
             services.AddSingleton<IdTokenValidator>();
             services.AddSingleton<RequestValidator>();
+            services.AddSingleton<ErrorLogger>();
         }
     }
 }

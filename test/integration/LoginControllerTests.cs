@@ -8,6 +8,7 @@ namespace IO.Curity.OAuthAgent.Test
     using Xunit;
     using IO.Curity.OAuthAgent.Exceptions;
     using IO.Curity.OAuthAgent.Entities;
+    
 
     /*
      * Tests against the login controller operations
@@ -17,23 +18,21 @@ namespace IO.Curity.OAuthAgent.Test
     public class LoginControllerTests
     {
         private readonly IntegrationTestsState state;
-        private readonly string baseUrl;
 
         public LoginControllerTests(IntegrationTestsState state)
         {
             this.state = state;
-            this.baseUrl = "http://api.example.local:8080/oauth-agent";
         }
 
         [Fact]
         public async Task LoginController_StartLoginOptionsWithInvalidOrigin_ReturnsNoCorsHeaders() {
 
-            var url = $"{this.baseUrl}/login/start";
+            var url = $"{this.state.OAuthAgentBaseUrl}/login/start";
             using (var client = new HttpClient())
             {
                 var request = new HttpRequestMessage(HttpMethod.Options, url);
                 request.Headers.Add("origin", "http://malicious-site");
-                request.Headers.Add("Access-Control-Request-Method", "POST");
+                request.Headers.Add("access-control-request-method", "POST");
                 
                 var response = await client.SendAsync(request);
                 response.EnsureSuccessStatusCode();
@@ -52,7 +51,7 @@ namespace IO.Curity.OAuthAgent.Test
         [Fact]
         public async Task LoginController_StartLoginOptionsWithCorrectOrigin_ReturnsExpectedCorsHeaders() {
 
-            var url = $"{this.baseUrl}/login/start";
+            var url = $"{this.state.OAuthAgentBaseUrl}/login/start";
             using (var client = new HttpClient())
             {
                 var request = new HttpRequestMessage(HttpMethod.Options, url);
@@ -76,7 +75,7 @@ namespace IO.Curity.OAuthAgent.Test
         [Fact]
         public async Task LoginController_EndLoginPostForInvalidOrigin_Returns401Response()
         {
-            var url = $"{this.baseUrl}/login/end";
+            var url = $"{this.state.OAuthAgentBaseUrl}/login/end";
             using (var client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Add("origin", "http://malicious-site");
@@ -93,7 +92,7 @@ namespace IO.Curity.OAuthAgent.Test
         [Fact]
         public async Task LoginController_EndLoginPostForValidOriginWithoutCookies_ReturnsUnauthenticatedResponse()
         {
-            var url = $"{this.baseUrl}/login/end";
+            var url = $"{this.state.OAuthAgentBaseUrl}/login/end";
             using (var client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Add("origin", this.state.Configuration.TrustedWebOrigins[0]);
@@ -112,7 +111,7 @@ namespace IO.Curity.OAuthAgent.Test
         [Fact]
         public async Task LoginController_StartLoginPostForInvalidOrigin_Returns401Response()
         {
-            var url = $"{this.baseUrl}/login/end";
+            var url = $"{this.state.OAuthAgentBaseUrl}/login/end";
             using (var client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Add("origin", "http://malicious-site");
@@ -129,7 +128,7 @@ namespace IO.Curity.OAuthAgent.Test
         [Fact]
         public async Task LoginController_StartLoginForValidOrigin_ReturnsAuthorizationRequestUrl()
         {
-            var url = $"{this.baseUrl}/login/start";
+            var url = $"{this.state.OAuthAgentBaseUrl}/login/start";
             using (var client = new HttpClient())
             {
                 var request = new HttpRequestMessage(HttpMethod.Post, url);
@@ -143,44 +142,91 @@ namespace IO.Curity.OAuthAgent.Test
             }
         }
 
-        /*[Fact]
-        public async Task LoginController_TEMP()
+        [Fact]
+        public async Task LoginController_EndLoginWithMaliciousState_ReturnsInvalidRequest()
         {
-            // Needs a shared performLogin test routine
-            using (var handler = new HttpClientHandler { CookieContainer = new CookieContainer() })
+            var (state, cookieContainer) = await TestUtils.StartLogin(this.state);
+            var code = "4a4246d6-b4bd-11ec-b909-0242ac120002";
+            var maliciousState = "abc123";
+
+            using (var handler = new HttpClientHandler { CookieContainer = cookieContainer })
             {
                 using (var client = new HttpClient(handler))
                 {
                     client.DefaultRequestHeaders.Add("origin", this.state.Configuration.TrustedWebOrigins[0]);
 
-                    // Make a first request to set the cookie
-                    var startUrl = $"{this.baseUrl}/login/start";
-                    var request = new HttpRequestMessage(HttpMethod.Post, startUrl);
-                    var response = await client.SendAsync(request);
+                    var endUrl = $"{this.state.OAuthAgentBaseUrl}/login/end";
+                    var spaLoginResponseUrl = $"https://www.example.local?code={code}&state={maliciousState}";
+                    var requestData = new EndAuthorizationRequest(spaLoginResponseUrl);
+                    
+                    var response = await client.PostAsJsonAsync(endUrl, requestData);
+                    Assert.Equal(400, ((int)response.StatusCode));
+
+                    var data = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                    Assert.Equal("invalid_request", data.Code);
+                }
+            }
+        }
+        
+        [Fact]
+        public async Task LoginController_EndLoginValidAuthorizationResponse_ReturnsAuthenticationHandled()
+        {
+            // Start a login to get the state and the temp login cookie
+            var (state, cookieContainer) = await TestUtils.StartLogin(this.state);
+            var code = "4a4246d6-b4bd-11ec-b909-0242ac120002";
+
+            using (var handler = new HttpClientHandler { CookieContainer = cookieContainer })
+            {
+                using (var client = new HttpClient(handler))
+                {
+                    client.DefaultRequestHeaders.Add("origin", this.state.Configuration.TrustedWebOrigins[0]);
+
+                    // Send the code and state to the OAuth Agent, which will call the authorization server
+                    // For tests, Wiremock acts as the authorization server, and any code is accepted
+                    var endUrl = $"{this.state.OAuthAgentBaseUrl}/login/end";
+                    var spaLoginResponseUrl = $"https://www.example.local?code={code}&state={state}";
+                    var requestData = new EndAuthorizationRequest(spaLoginResponseUrl);
+                    
+                    var response = await client.PostAsJsonAsync(endUrl, requestData);
                     response.EnsureSuccessStatusCode();
 
-                    // Make a second request to use the cookie
-                    var endUrl = $"{this.baseUrl}/login/end";
-                    var requestData = new EndAuthorizationRequest("https://www.example.local?code=xxxxxx&state=yyyyyy");
-                    var response2 = await client.PostAsJsonAsync(endUrl, requestData);
+                    var data = await response.Content.ReadFromJsonAsync<EndAuthorizationResponse>();
+                    Assert.True(data.Handled);
+                    Assert.True(data.IsLoggedIn);
+                    Assert.True(data.Csrf.Length > 0);
+                }
+            }
+        }
+
+        [Fact]
+        public async Task LoginController_EndLoginWithValidCookies_ReturnsAuthenticatedResponse()
+        {
+            // Perform a login and get cookies
+            var (endResponseData, cookieContainer) = await TestUtils.PerformLogin(this.state);
+
+            // Run a page reload with cookies
+            using (var handler = new HttpClientHandler { CookieContainer = cookieContainer })
+            {
+                using (var client = new HttpClient(handler))
+                {
+                    client.DefaultRequestHeaders.Add("origin", this.state.Configuration.TrustedWebOrigins[0]);
+
+                    var endUrl = $"{this.state.OAuthAgentBaseUrl}/login/end";
+                    var spaLoginResponseUrl = $"https://www.example.local";
+                    var requestData = new EndAuthorizationRequest(spaLoginResponseUrl);
+                    
+                    var response = await client.PostAsJsonAsync(endUrl, requestData);
                     response.EnsureSuccessStatusCode();
+
+                    var data = await response.Content.ReadFromJsonAsync<EndAuthorizationResponse>();
+                    Assert.False(data.Handled);
+                    Assert.True(data.IsLoggedIn);
+                    Assert.True(data.Csrf.Length > 0);
                 }
             }
         }
 
         /*[Fact(Skip = "Not implemented")]
-        public async Task LoginController_EndLoginWithMaliciousState_ReturnsInvalidRequest()
-        {
-            // Requires cookies
-        }
-
-        [Fact(Skip = "Not implemented")]
-        public async Task LoginController_EndLoginWithValidCookies_ReturnsAuthenticatedResponse()
-        {
-            // Requires cookies
-        }
-
-        [Fact(Skip = "Not implemented")]
         public async Task LoginController_EndLoginWithIncorrectlyConfiguredClientSecret_Returns400()
         {
             // Requires cookies

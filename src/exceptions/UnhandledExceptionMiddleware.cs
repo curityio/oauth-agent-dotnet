@@ -1,12 +1,10 @@
 namespace IO.Curity.OAuthAgent.Exceptions
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Http;
-    using Microsoft.Extensions.Logging;
 
-    public sealed class UnhandledExceptionMiddleware
+    public class UnhandledExceptionMiddleware
     {
         private readonly RequestDelegate next;
 
@@ -15,7 +13,7 @@ namespace IO.Curity.OAuthAgent.Exceptions
             this.next = next;
         }
 
-        public async Task Invoke(HttpContext context, ILoggerFactory loggerFactory)
+        public async Task Invoke(HttpContext context, ErrorLogger logger)
         {
             try
             {
@@ -23,10 +21,11 @@ namespace IO.Curity.OAuthAgent.Exceptions
             }
             catch (Exception exception)
             {
+                // Process and log the exception details
                 var oauthAgentException = this.GetOAuthAgentException(exception);
-                
-                this.LogError(oauthAgentException, context.Request, loggerFactory.CreateLogger<UnhandledExceptionMiddleware>());
+                logger.Write(oauthAgentException, context.Request);
 
+                // Write the client error response
                 var response = context.Response;
                 response.StatusCode = oauthAgentException.StatusCode;
                 var errorResponse = oauthAgentException.GetErrorResponse();
@@ -43,29 +42,6 @@ namespace IO.Curity.OAuthAgent.Exceptions
             }
             
             return new UnhandledException(ex);
-        }
-
-        private void LogError(OAuthAgentException exception, HttpRequest request, ILogger logger)
-        {
-            var fields = new List<string>();
-            fields.Add(request.Method);
-            fields.Add(request.Path);
-            fields.AddRange(exception.GetLogFields());
-
-            if (exception.StatusCode >= 500)
-            {
-                if (logger.IsEnabled(LogLevel.Error))
-                {
-                    logger.LogError(new EventId(), null, string.Join(", ", fields));
-                }
-            }
-            else
-            {
-                if (logger.IsEnabled(LogLevel.Information))
-                {
-                    logger.LogInformation(new EventId(), null, string.Join(", ", fields));
-                }
-            }
         }
     }
 }

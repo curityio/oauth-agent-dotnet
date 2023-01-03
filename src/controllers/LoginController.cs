@@ -1,5 +1,6 @@
 namespace IO.Curity.OAuthAgent.Controllers
 {
+    using System;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -15,7 +16,7 @@ namespace IO.Curity.OAuthAgent.Controllers
         private readonly AuthorizationServerClient authorizationServerClient;
         private readonly IdTokenValidator idTokenValidator;
         private readonly RequestValidator requestValidator;
-        
+
         public LoginController(
             LoginHandler loginHandler,
             CookieManager cookieManager,
@@ -37,10 +38,13 @@ namespace IO.Curity.OAuthAgent.Controllers
         public StartAuthorizationResponse StartLogin(
             [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] StartAuthorizationParameters parameters)
         {
+            // First check that the web origin is allowed
             this.requestValidator.ValidateRequest(this.HttpContext.Request, new RequestValidationOptions{RequireCsrfHeader = false});
 
+            // Produce the authentication request URL for the SPA
             var data = this.loginHandler.CreateAuthorizationRequest(parameters);
             
+            // Store a temp login cookie
             var (name, value, options) = this.cookieManager.CreateTempLoginStateCookie(data.State, data.CodeVerifier);
             this.Response.Cookies.Append(name, value, options);
         
@@ -53,27 +57,40 @@ namespace IO.Curity.OAuthAgent.Controllers
         [HttpPost("login/end")]
         public async Task<EndAuthorizationResponse> EndLogin([FromBody] EndAuthorizationRequest request)
         {
+            // First check that the web origin is allowed
             this.requestValidator.ValidateRequest(this.HttpContext.Request, new RequestValidationOptions{RequireCsrfHeader = false});
 
-            var queryParams = await this.loginHandler.HandleAuthorizationResponse(request.PageUrl);
+            // Next process query parameters
+            var queryParams = this.loginHandler.HandleAuthorizationResponse(request.PageUrl);
             var isOAuthResponse = !string.IsNullOrWhiteSpace(queryParams.Code) && !string.IsNullOrWhiteSpace(queryParams.State);
-            var isLoggedIn = false;
+
+            // Set the login state from existing cookies
+            var csrfToken = this.GetCsrfTokenFromCookie();
+            var isLoggedIn = !string.IsNullOrWhiteSpace(csrfToken);
 
             if (isOAuthResponse)
             {
-                var loginCookieName = this.cookieManager.GetCookieName(CookieManager.CookieName.login);
-                var tempLoginCookie = this.Request.Cookies[loginCookieName];
-                var loginData = this.cookieManager.ReadStoredLoginStateCookie(tempLoginCookie);
+                // Decrypt the temporary login cookie and verify the state response parameter
                 
-                if (loginData.State != queryParams.State)
+                var loginData = this.GetLoginDataFromCookie();
+                if (loginData?.State != queryParams.State)
                 {
                     throw new InvalidStateException();
                 }
 
+                // The CSRF token is stored in memory and sent as a request header from each browser tab
+                // Avoid generating a new one unless needed, to prevent application problems
+                if (string.IsNullOrWhiteSpace(csrfToken))
+                {
+                    csrfToken = RandomStringGenerator.CreateCsrfToken();
+                }
+
+                // Redeem the code for tokens, then validate the ID token
                 var tokenResponse = await this.authorizationServerClient.RedeemCodeForTokens(queryParams.Code, loginData.CodeVerifier);
                 this.idTokenValidator.Validate(tokenResponse.IdToken);
 
-                var cookies = this.cookieManager.CreateCookies(tokenResponse);
+                // Write tokens containing cookies
+                var cookies = this.cookieManager.CreateCookies(tokenResponse, csrfToken);
                 cookies.ForEach(cookie => {
 
                     var (name, value, options) = cookie;
@@ -87,8 +104,38 @@ namespace IO.Curity.OAuthAgent.Controllers
             {
                 Handled = isOAuthResponse,
                 IsLoggedIn = isLoggedIn,
-                Csrf = ""
+                Csrf = csrfToken,
             };
+        }
+
+        /*
+         * Return data from the CSRF token if it exists
+         */
+        private string GetCsrfTokenFromCookie()
+        {
+            if (this.Request.Cookies != null)
+            {
+                var csrfCookieName = this.cookieManager.GetCookieName(CookieManager.CookieName.csrf);
+                var csrfCookie = this.Request.Cookies[csrfCookieName];
+                return this.cookieManager.DecryptCsrfCookie(csrfCookie);
+            }
+
+            return "";
+        }
+
+        /*
+         * Return data from the login cookie if it exists
+         */
+        private TempLoginData GetLoginDataFromCookie()
+        {
+            if (this.Request.Cookies != null)
+            {
+                var loginCookieName = this.cookieManager.GetCookieName(CookieManager.CookieName.login);
+                var tempLoginCookie = this.Request.Cookies[loginCookieName];
+                return this.cookieManager.DecryptLoginStateCookie(tempLoginCookie);
+            }
+
+            return null;
         }
     }
 }
