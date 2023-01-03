@@ -1,14 +1,16 @@
 namespace IO.Curity.OAuthAgent.Test
 {
+    using System.Collections.Generic;
     using System.Linq;
     using System.Net;
     using System.Net.Http;
     using System.Net.Http.Json;
     using System.Threading.Tasks;
     using Xunit;
+    using WireMock.RequestBuilders;
+    using WireMock.ResponseBuilders;
     using IO.Curity.OAuthAgent.Exceptions;
     using IO.Curity.OAuthAgent.Entities;
-    
 
     /*
      * Tests against the login controller operations
@@ -84,7 +86,7 @@ namespace IO.Curity.OAuthAgent.Test
                 var response = await client.PostAsJsonAsync(url, requestData);
                 Assert.Equal(401, ((int)response.StatusCode));
 
-                var data = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                var data = await response.Content.ReadFromJsonAsync<ClientErrorResponse>();
                 Assert.Equal("unauthorized_request", data.Code);
             }
         }
@@ -120,7 +122,7 @@ namespace IO.Curity.OAuthAgent.Test
                 var response = await client.PostAsJsonAsync(url, requestData);
 
                 Assert.Equal(401, ((int)response.StatusCode));
-                var data = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                var data = await response.Content.ReadFromJsonAsync<ClientErrorResponse>();
                 Assert.Equal("unauthorized_request", data.Code);
             }
         }
@@ -162,7 +164,7 @@ namespace IO.Curity.OAuthAgent.Test
                     var response = await client.PostAsJsonAsync(endUrl, requestData);
                     Assert.Equal(400, ((int)response.StatusCode));
 
-                    var data = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+                    var data = await response.Content.ReadFromJsonAsync<ClientErrorResponse>();
                     Assert.Equal("invalid_request", data.Code);
                 }
             }
@@ -226,22 +228,95 @@ namespace IO.Curity.OAuthAgent.Test
             }
         }
 
-        /*[Fact(Skip = "Not implemented")]
+        [Fact]
         public async Task LoginController_EndLoginWithIncorrectlyConfiguredClientSecret_Returns400()
         {
-            // Requires cookies
+            var (state, cookieContainer) = await TestUtils.StartLogin(this.state);
+            var code = "4a4246d6-b4bd-11ec-b909-0242ac120002";
+
+            using (var handler = new HttpClientHandler { CookieContainer = cookieContainer })
+            {
+                using (var client = new HttpClient(handler))
+                {
+                    client.DefaultRequestHeaders.Add("origin", this.state.Configuration.TrustedWebOrigins[0]);
+
+                    // Make the mock authorization server reject with incorrect client secret behavior
+                    this.state.MockAuthorizationServer.Given(
+                        Request.Create().WithPath("/oauth/v2/oauth-token").UsingPost()
+                    )
+                    .AtPriority(1)
+                    .RespondWith(
+                        Response.Create()
+                            .WithStatusCode(400)
+                            .WithHeader("content-type", "application-json")
+                            .WithBody("{\"error\":\"invalid_client\"}")
+                    );
+
+                    // Send the code and state to the OAuth Agent, which will call the authorization server
+                    // For tests, Wiremock acts as the authorization server, and any code is accepted
+                    var endUrl = $"{this.state.OAuthAgentBaseUrl}/login/end";
+                    var spaLoginResponseUrl = $"https://www.example.local?code={code}&state={state}";
+                    var requestData = new EndAuthorizationRequest(spaLoginResponseUrl);
+                    
+                    var response = await client.PostAsJsonAsync(endUrl, requestData);
+                    Assert.Equal(400, ((int)response.StatusCode));
+
+                    var data = await response.Content.ReadFromJsonAsync<ClientErrorResponse>();
+                    Assert.Equal("authorization_error", data.Code);
+                }
+            }
         }
 
-        [Fact(Skip = "Not implemented")]
+        [Fact]
         public async Task LoginController_EndLoginWithInvalidScopeDueToMisconfiguredClient_Returns400Error()
         {
-            // Requires cookies
+            var (state, cookieContainer) = await TestUtils.StartLogin(this.state);
+
+            using (var handler = new HttpClientHandler { CookieContainer = cookieContainer })
+            {
+                using (var client = new HttpClient(handler))
+                {
+                    client.DefaultRequestHeaders.Add("origin", this.state.Configuration.TrustedWebOrigins[0]);
+
+                    var endUrl = $"{this.state.OAuthAgentBaseUrl}/login/end";
+                    var spaLoginResponseUrl = $"https://www.example.local?error=invalid_scope&state={state}";
+                    var requestData = new EndAuthorizationRequest(spaLoginResponseUrl);
+                    
+                    var response = await client.PostAsJsonAsync(endUrl, requestData);
+                    Assert.Equal(400, ((int)response.StatusCode));
+
+                    var data = await response.Content.ReadFromJsonAsync<ClientErrorResponse>();
+                    Assert.Equal("invalid_scope", data.Code);
+                }
+            }
         }
 
-        [Fact(Skip = "Not implemented")]
-        public async Task LoginController_EndLoginWithLoginRequired_Returns401ForExpiry()
+        [Fact]
+        public async Task LoginController_EndLoginOnFrontChannelWithLoginRequired_Returns401ForExpiryRelatedErrors()
         {
-            // Requires cookies
-        }*/
+            var parameters = new List<ExtraParams>
+            {
+                new ExtraParams("prompt", "none")
+            };
+            var (state, cookieContainer) = await TestUtils.StartLogin(this.state, new StartAuthorizationParameters(parameters));
+
+            using (var handler = new HttpClientHandler { CookieContainer = cookieContainer })
+            {
+                using (var client = new HttpClient(handler))
+                {
+                    client.DefaultRequestHeaders.Add("origin", this.state.Configuration.TrustedWebOrigins[0]);
+
+                    var endUrl = $"{this.state.OAuthAgentBaseUrl}/login/end";
+                    var spaLoginResponseUrl = $"https://www.example.local?error=login_required&state={state}";
+                    var requestData = new EndAuthorizationRequest(spaLoginResponseUrl);
+                    
+                    var response = await client.PostAsJsonAsync(endUrl, requestData);
+                    Assert.Equal(401, ((int)response.StatusCode));
+
+                    var data = await response.Content.ReadFromJsonAsync<ClientErrorResponse>();
+                    Assert.Equal("login_required", data.Code);
+                }
+            }
+        }
     }
 }

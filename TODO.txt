@@ -1,24 +1,21 @@
 TEST DRIVEN
 -----------
-1. Authorization client exception handling to complete
-   Use the deserialization technique from client side tests
+1. Other controller operations to complete so that bash script works
 
-2. ID token validation with MS JWT library
+2. Test deployment and decryption in the gateway
+   Ensure no crypto incompatibilities
 
-3. Get bash script more fully working, up to token refresh
-
-4. Review all login related tests
-   Run Kotlin tests and understand how often Wiremock server is created
+3. ID token validation with MS JWT library
    
-5. Other controller operations and tests to complete
-
-6. Test deployment and decryption in the gateway
-   Ensure no decryption incompatibilities
+4. Complete tests
 
 ADMIN
 -----
 1. Kotlin ID Token validation errors to include description
+   Broken tests also
 
 2. Node.js ID token validation, issuer check only if ISSUER environment variable is configured
 
-3. Update Jira before Tuesday
+3. Cookiemanager improvements
+
+4. Update Jira and chat with Michal

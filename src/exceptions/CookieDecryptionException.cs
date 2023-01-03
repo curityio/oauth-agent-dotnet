@@ -8,7 +8,7 @@ namespace IO.Curity.OAuthAgent.Exceptions
             "Access denied due to invalid request details",
             401,
             "unauthorized_request",
-            $"A received cookie failed decryption: {exception.Message}",
+            "A received cookie failed decryption",
             exception)
         {
         }

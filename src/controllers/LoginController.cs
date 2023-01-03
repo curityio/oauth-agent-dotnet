@@ -100,6 +100,7 @@ namespace IO.Curity.OAuthAgent.Controllers
                 isLoggedIn = true;
             }
 
+            // Give the SPA the fields it needs
             return new EndAuthorizationResponse
             {
                 Handled = isOAuthResponse,

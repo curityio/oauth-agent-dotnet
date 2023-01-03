@@ -36,7 +36,7 @@ namespace IO.Curity.OAuthAgent
                     var response = await client.PostAsync(this.configuration.TokenEndpoint, new FormUrlEncodedContent(data));
                     if (!response.IsSuccessStatusCode)
                     {
-                        throw this.CreateAuthorizationServerError(response);
+                        throw await this.CreateAuthorizationServerError(response, GrantType.AuthorizationCode);
                     }
 
                     return await response.Content.ReadFromJsonAsync<TokenResponse>();
@@ -49,9 +49,16 @@ namespace IO.Curity.OAuthAgent
             }
         }
 
-        private AuthorizationClientException CreateAuthorizationServerError(HttpResponseMessage response)
+        private async Task<OAuthAgentException> CreateAuthorizationServerError(HttpResponseMessage response, GrantType grantType)
         {
-            return new AuthorizationClientException(response);
+            var text = await response.Content.ReadAsStringAsync();
+
+            if ((int)response.StatusCode >= 500)
+            {
+                return new AuthorizationServerException($"Server error response executing {grantType}: {text}", null);
+            }
+
+            return AuthorizationClientException.Create(grantType, (int)response.StatusCode, text);
         }
     }
 }

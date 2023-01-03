@@ -8,7 +8,7 @@ namespace IO.Curity.OAuthAgent.Exceptions
             "A technical problem occurred in the OAuth Agent",
             500,
             "server_error",
-            exception.Message,
+            "Unhandled exception",
             exception)
         {
         }

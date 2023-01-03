@@ -5,7 +5,7 @@ namespace IO.Curity.OAuthAgent.Exceptions
 
     public class OAuthAgentException : Exception
     {
-        public int StatusCode {get; set; }
+        public int StatusCode { get; set; }
 
         private readonly string code;
         private readonly string logMessage;
@@ -19,12 +19,20 @@ namespace IO.Curity.OAuthAgent.Exceptions
         {
             this.StatusCode = statusCode;
             this.code = code;
-            this.logMessage = logMessage;
+
+            if (cause != null && !string.IsNullOrWhiteSpace(cause.Message))
+            {
+                this.logMessage = $"{logMessage} : {cause.Message}";
+            }
+            else
+            {
+                this.logMessage = logMessage;
+            }
         }
 
-        public ErrorResponse GetErrorResponse()
+        public ClientErrorResponse GetErrorResponse()
         {
-            return new ErrorResponse(this.code, this.Message);
+            return new ClientErrorResponse(this.code, this.Message);
         }
 
         public List<string> GetLogFields()

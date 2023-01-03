@@ -1,6 +1,7 @@
 namespace IO.Curity.OAuthAgent.Test
 {
     using System;
+    using System.Collections.Generic;
     using System.Net;
     using System.Net.Http;
     using System.Net.Http.Json;
@@ -13,18 +14,20 @@ namespace IO.Curity.OAuthAgent.Test
         /*
          * Start a login and return the temp cookie, for a test to use
          */
-        public static async Task<(string, CookieContainer)> StartLogin(IntegrationTestsState testState, string stateOverride = null)
+        public static async Task<(string, CookieContainer)> StartLogin(IntegrationTestsState testState, StartAuthorizationParameters parameters = null)
         {
             var cookieContainer = new CookieContainer();
             using (var handler = new HttpClientHandler { CookieContainer = cookieContainer })
             {
                 using (var client = new HttpClient(handler))
                 {
+                    client.DefaultRequestHeaders.Add("origin", testState.Configuration.TrustedWebOrigins[0]);
+
                     var url = $"{testState.OAuthAgentBaseUrl}/login/start";
                     var request = new HttpRequestMessage(HttpMethod.Post, url);
-                    request.Headers.Add("origin", testState.Configuration.TrustedWebOrigins[0]);
-                    
-                    var response = await client.SendAsync(request);
+
+                    var requestData = parameters ?? new StartAuthorizationParameters(new List<ExtraParams>());
+                    var response = await client.PostAsJsonAsync<StartAuthorizationParameters>(url, requestData);
                     response.EnsureSuccessStatusCode();
 
                     var responseData = await response.Content.ReadFromJsonAsync<StartAuthorizationResponse>();
