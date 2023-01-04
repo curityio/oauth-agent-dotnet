@@ -3,7 +3,6 @@ namespace IO.Curity.OAuthAgent.Controllers
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
     using IO.Curity.OAuthAgent.Exceptions;
-    using IO.Curity.OAuthAgent.Utilities;
 
     [Route("oauth-agent")]
     public class RefreshTokenController : Controller
@@ -21,9 +20,9 @@ namespace IO.Curity.OAuthAgent.Controllers
         public RefreshTokenController(
             OAuthAgentConfiguration configuration,
             CookieManager cookieManager,
+            RequestValidator requestValidator,
             AuthorizationServerClient authorizationServerClient,
-            IdTokenValidator idTokenValidator,
-            RequestValidator requestValidator)
+            IdTokenValidator idTokenValidator)
         {
             this.configuration = configuration;
             this.cookieManager = cookieManager;
@@ -36,10 +35,11 @@ namespace IO.Curity.OAuthAgent.Controllers
         public async Task RefreshToken()
         {
             // First check that the web origin and a CSRF token are provided
-            this.requestValidator.ValidateRequest(this.HttpContext.Request, new RequestValidationOptions());
+            var csrfToken = this.cookieManager.GetCookieSafe(this.Request, CookieManager.CookieName.csrf);
+            this.requestValidator.ValidateRequest(this.HttpContext.Request, csrfToken: csrfToken);
 
             // Next get the refresh token
-            var refreshToken = this.GetRefreshTokenFromCookie();
+            var refreshToken = this.cookieManager.GetCookieSafe(this.Request, CookieManager.CookieName.refresh);
             if (string.IsNullOrWhiteSpace(refreshToken))
             {
                 throw new InvalidCookieException("No valid refresh cookie was supplied in a call to refresh token");
@@ -52,28 +52,16 @@ namespace IO.Curity.OAuthAgent.Controllers
                 idTokenValidator.Validate(tokenResponse.IdToken);
             }
 
-            // Write updated cookies
+            // Write updated cookies to response headers
             var cookies = this.cookieManager.RefreshCookies(tokenResponse);
             cookies.ForEach(cookie => {
 
                 var (name, value, options) = cookie;
                 this.Response.Cookies.Append(name, value, options);
             });
-        }
 
-        /*
-         * Return the refresh token if received
-         */
-        private string GetRefreshTokenFromCookie()
-        {
-            if (this.Request.Cookies != null)
-            {
-                var refreshCookieName = this.cookieManager.GetCookieName(CookieManager.CookieName.refresh);
-                var refreshCookie = this.Request.Cookies[refreshCookieName];
-                return this.cookieManager.DecryptCookieSafe(CookieManager.CookieName.refresh, refreshCookie);
-            }
-
-            return "";
+            // Indicate no body content
+            this.Response.StatusCode = 204;
         }
     }
 }

@@ -44,9 +44,15 @@ namespace IO.Curity.OAuthAgent
         /*
          * Read back the login state when receiving the authorization response
          */
-        public TempLoginData DecryptLoginStateCookieSafe(string encryptedCookieValue)
+        public TempLoginData GetLoginStateCookieSafe(HttpRequest request)
         {
-            var decrypted = DecryptCookieSafe(CookieName.login, encryptedCookieValue);
+            var encrypted = GetEncryptedCookieSafe(request, CookieName.login);
+            if (string.IsNullOrWhiteSpace(encrypted))
+            {
+                return null;
+            }
+
+            var decrypted = DecryptCookieSafe(CookieName.login, encrypted);
             if (string.IsNullOrWhiteSpace(decrypted))
             {
                 return null;
@@ -56,46 +62,17 @@ namespace IO.Curity.OAuthAgent
         }
 
         /*
-         * Handle cookie decryption defensively, in case the browser has leftover cookies with an old encryption key
+         * Get a cookie and allow the caller to deal with throwing exceptions
          */
-        public string DecryptCookieSafe(CookieName name, string encryptedCookieValue)
+        public string GetCookieSafe(HttpRequest request, CookieName name)
         {
-            if (!string.IsNullOrWhiteSpace(encryptedCookieValue))
+            var encrypted = GetEncryptedCookieSafe(request, name);
+            if (string.IsNullOrWhiteSpace(encrypted))
             {
-                try
-                {
-                    return CookieEncrypter.DecryptCookie(this.configuration.CookieEncryptionKey, encryptedCookieValue);
-                }
-                catch (Exception exception)
-                {
-                    logger.LogDebug(new EventId(), exception, $"Unable to decrypt {name} cookie");
-                }
-            }
-            
-            return "";
-        }
-
-        public string GetCookieName(CookieName name)
-        {
-            switch (name)
-            {
-                case CookieName.login:
-                    return $"{this.configuration.CookieNamePrefix}-login";
-
-                case CookieName.refresh:
-                    return $"{this.configuration.CookieNamePrefix}-auth";
-
-                case CookieName.access:
-                    return $"{this.configuration.CookieNamePrefix}-at";
-
-                case CookieName.id:
-                    return $"{this.configuration.CookieNamePrefix}-id";
-
-                case CookieName.csrf:
-                    return $"{this.configuration.CookieNamePrefix}-csrf";
+                return "";
             }
 
-            throw new ArgumentException("Invalid  cookie name requested");
+            return DecryptCookieSafe(name, encrypted) ?? "";
         }
 
         /*
@@ -125,7 +102,7 @@ namespace IO.Curity.OAuthAgent
         }
 
         /*
-         * After loggign out, return the data needed to expire all cookies
+         * After logging out, return the data needed to expire all cookies
          */
         public List<(string, string, CookieOptions)> ExpireAllCookies()
         {
@@ -139,6 +116,73 @@ namespace IO.Curity.OAuthAgent
             return results;
         }
 
+        /*
+         * Form the cookie full name from the configured prefix
+         */
+        private string GetCookieName(CookieName name)
+        {
+            switch (name)
+            {
+                case CookieName.login:
+                    return $"{this.configuration.CookieNamePrefix}-login";
+
+                case CookieName.refresh:
+                    return $"{this.configuration.CookieNamePrefix}-auth";
+
+                case CookieName.access:
+                    return $"{this.configuration.CookieNamePrefix}-at";
+
+                case CookieName.id:
+                    return $"{this.configuration.CookieNamePrefix}-id";
+
+                case CookieName.csrf:
+                    return $"{this.configuration.CookieNamePrefix}-csrf";
+            }
+
+            throw new ArgumentException("Invalid  cookie name requested");
+        }
+
+        /*
+         * Get a cookie by name from the HTTP request
+         */
+        private string GetEncryptedCookieSafe(HttpRequest request, CookieName name)
+        {
+            if (request.Cookies != null)
+            {
+                var cookieName = this.GetCookieName(name);
+                var cookie = request.Cookies[cookieName];
+                if (!string.IsNullOrWhiteSpace(cookie))
+                {
+                    return cookie;
+                }
+            }
+
+            return "";
+        }
+
+        /*
+         * Handle cookie decryption defensively, in case the browser has leftover cookies with an old encryption key
+         */
+        private string DecryptCookieSafe(CookieName name, string encryptedCookieValue)
+        {
+            if (!string.IsNullOrWhiteSpace(encryptedCookieValue))
+            {
+                try
+                {
+                    return CookieEncrypter.DecryptCookie(this.configuration.CookieEncryptionKey, encryptedCookieValue);
+                }
+                catch (Exception exception)
+                {
+                    logger.LogDebug(new EventId(), exception, $"Unable to decrypt {name} cookie");
+                }
+            }
+            
+            return "";
+        }
+
+        /*
+         * After validating the ID token, write tokens to cookies
+         */
         private List<(string, string, CookieOptions)> WriteTokensToCookies(TokenResponse tokenResponse)
         {
             var results = new List<(string, string, CookieOptions)>();
@@ -161,6 +205,9 @@ namespace IO.Curity.OAuthAgent
             return results;
         }
 
+        /*
+         * Get options when creating a cookie
+         */
         private CookieOptions GetCookieOptions(string cookiePath)
         {
             bool useSsl = !string.IsNullOrWhiteSpace(this.configuration.ServerCertPath);
@@ -173,6 +220,9 @@ namespace IO.Curity.OAuthAgent
             };
         }
 
+        /*
+         * Get options when expiring a cookie
+         */
         private CookieOptions GetDeleteCookieOptions(string cookiePath)
         {
             var options = this.GetCookieOptions(cookiePath);

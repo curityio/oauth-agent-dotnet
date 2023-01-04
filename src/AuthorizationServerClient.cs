@@ -1,9 +1,11 @@
 namespace IO.Curity.OAuthAgent
 {
+    using System;
     using System.Collections.Generic;
     using System.Net.Http;
     using System.Net.Http.Headers;
     using System.Net.Http.Json;
+    using System.Text;
     using System.Threading.Tasks;
     using IO.Curity.OAuthAgent.Entities;
     using IO.Curity.OAuthAgent.Exceptions;
@@ -25,10 +27,13 @@ namespace IO.Curity.OAuthAgent
             using (var client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Add("accept", "application/json");
+
+                var credential = $"{this.configuration.ClientID}:{this.configuration.ClientSecret}";
+                var basicCredential = Convert.ToBase64String(Encoding.UTF8.GetBytes(credential));
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicCredential);
+
                 var data = new[]
                 {
-                    new KeyValuePair<string, string>("client_id", this.configuration.ClientID),
-                    new KeyValuePair<string, string>("client_secret", this.configuration.ClientSecret),
                     new KeyValuePair<string, string>("grant_type", "authorization_code"),
                     new KeyValuePair<string, string>("redirect_uri", this.configuration.RedirectUri),
                     new KeyValuePair<string, string>("code", code),
@@ -61,10 +66,13 @@ namespace IO.Curity.OAuthAgent
             using (var client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Add("accept", "application/json");
+
+                var credential = $"{this.configuration.ClientID}:{this.configuration.ClientSecret}";
+                var basicCredential = Convert.ToBase64String(Encoding.UTF8.GetBytes(credential));
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", basicCredential);
+
                 var data = new[]
                 {
-                    new KeyValuePair<string, string>("client_id", this.configuration.ClientID),
-                    new KeyValuePair<string, string>("client_secret", this.configuration.ClientSecret),
                     new KeyValuePair<string, string>("grant_type", "refresh_token"),
                     new KeyValuePair<string, string>("refresh_token", refreshToken),
                 };
@@ -78,7 +86,6 @@ namespace IO.Curity.OAuthAgent
                     }
 
                     return await response.Content.ReadFromJsonAsync<TokenResponse>();
-                
                 }
                 catch (HttpRequestException exception)
                 {

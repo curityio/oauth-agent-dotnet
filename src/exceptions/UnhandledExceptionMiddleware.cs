@@ -34,14 +34,15 @@ namespace IO.Curity.OAuthAgent.Exceptions
             }   
         }
 
-        private OAuthAgentException GetOAuthAgentException(Exception ex)
+        private OAuthAgentException GetOAuthAgentException(Exception exception)
         {
-            if (ex is OAuthAgentException)
+            if (exception is OAuthAgentException)
             {
-                return ex as OAuthAgentException;
+                return exception as OAuthAgentException;
             }
             
-            return new UnhandledException(ex);
+            
+            return new UnhandledException(exception);
         }
     }
 }

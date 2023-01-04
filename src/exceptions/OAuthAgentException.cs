@@ -9,6 +9,7 @@ namespace IO.Curity.OAuthAgent.Exceptions
 
         private readonly string code;
         private readonly string logMessage;
+        private readonly string originalStackTrace;
 
         public OAuthAgentException(
             string message,
@@ -28,6 +29,8 @@ namespace IO.Curity.OAuthAgent.Exceptions
             {
                 this.logMessage = logMessage;
             }
+
+            this.originalStackTrace = cause?.StackTrace ?? this.StackTrace;
         }
 
         public ClientErrorResponse GetErrorResponse()
@@ -42,12 +45,17 @@ namespace IO.Curity.OAuthAgent.Exceptions
             data.Add(this.code);
             data.Add(this.Message);
             
-            if (!string.IsNullOrWhiteSpace(this.logMessage)) {
+            if (!string.IsNullOrWhiteSpace(this.logMessage))
+            {
                 data.Add(this.logMessage);
             }
 
-            if (this.StatusCode >= 500) {
-                data.Add(this.StackTrace);
+            if (this.StatusCode >= 500)
+            {
+                if (!string.IsNullOrWhiteSpace(this.originalStackTrace))
+                {
+                    data.Add(this.originalStackTrace);
+                }
             }
 
             return data;

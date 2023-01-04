@@ -5,7 +5,6 @@ namespace IO.Curity.OAuthAgent.Controllers
     using System.Linq;
     using Microsoft.AspNetCore.Mvc;
     using IO.Curity.OAuthAgent.Exceptions;
-    using IO.Curity.OAuthAgent.Utilities;
 
     [Route("oauth-agent")]
     public class ClaimsController : Controller
@@ -27,21 +26,19 @@ namespace IO.Curity.OAuthAgent.Controllers
         }
 
         /*
-         * Return claims from th ID token to the SPA
+         * Return claims from the ID token to the SPA
          */
         [HttpGet("claims")]
         public IDictionary<string, object> GetClaims()
         {
             // In CORS setups, validate the web origin, whereas in same site deployments the origin header is not sent
-            var options = new RequestValidationOptions
-            {
-                RequireTrustedOrigin = this.configuration.CorsEnabled,
-                RequireCsrfHeader = false
-            };
-            this.requestValidator.ValidateRequest(this.HttpContext.Request, options);
+            this.requestValidator.ValidateRequest(
+                this.HttpContext.Request,
+                requireTrustedOrigin: this.configuration.CorsEnabled,
+                requireCsrfHeader: false);
 
             // Next get the ID token
-            var idToken = this.GetIdTokenFromCookie();
+            var idToken = this.cookieManager.GetCookieSafe(this.Request, CookieManager.CookieName.id);
             if (string.IsNullOrWhiteSpace(idToken))
             {
                 throw new InvalidCookieException("No valid ID cookie was supplied in a call to get claims");
@@ -52,21 +49,6 @@ namespace IO.Curity.OAuthAgent.Controllers
             var result = new Dictionary<string, object>();
             token.Claims.ToList().ForEach(c => result.Add(c.Type, c.Value));
             return result;
-        } 
-
-        /*
-         * Return the ID token if received
-         */
-        private string GetIdTokenFromCookie()
-        {
-            if (this.Request.Cookies != null)
-            {
-                var idCookieName = this.cookieManager.GetCookieName(CookieManager.CookieName.id);
-                var idCookie = this.Request.Cookies[idCookieName];
-                return this.cookieManager.DecryptCookieSafe(CookieManager.CookieName.id, idCookie);
-            }
-
-            return "";
         }
     }
 }

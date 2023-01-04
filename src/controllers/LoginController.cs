@@ -19,9 +19,9 @@ namespace IO.Curity.OAuthAgent.Controllers
         public LoginController(
             LoginHandler loginHandler,
             CookieManager cookieManager,
+            RequestValidator requestValidator,
             AuthorizationServerClient authorizationServerClient,
-            IdTokenValidator idTokenValidator,
-            RequestValidator requestValidator)
+            IdTokenValidator idTokenValidator)
         {
             this.loginHandler = loginHandler;
             this.cookieManager = cookieManager;
@@ -38,7 +38,7 @@ namespace IO.Curity.OAuthAgent.Controllers
             [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] StartAuthorizationParameters parameters)
         {
             // First check that the web origin is allowed
-            this.requestValidator.ValidateRequest(this.HttpContext.Request, new RequestValidationOptions{RequireCsrfHeader = false});
+            this.requestValidator.ValidateRequest(this.HttpContext.Request, requireCsrfHeader: false);
 
             // Produce the authentication request URL for the SPA
             var data = this.loginHandler.CreateAuthorizationRequest(parameters);
@@ -54,23 +54,28 @@ namespace IO.Curity.OAuthAgent.Controllers
          * Handle OpenID Connect front channel responses, redeem the code for tokens, and write cookies
          */
         [HttpPost("login/end")]
-        public async Task<EndAuthorizationResponse> EndLogin([FromBody] EndAuthorizationRequest request)
+        public async Task<EndAuthorizationResponse> EndLogin(
+            [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] EndAuthorizationRequest data)
         {
             // First check that the web origin is allowed
-            this.requestValidator.ValidateRequest(this.HttpContext.Request, new RequestValidationOptions{RequireCsrfHeader = false});
-
-            // Next process query parameters
-            var queryParams = this.loginHandler.HandleAuthorizationResponse(request.PageUrl);
+            this.requestValidator.ValidateRequest(this.HttpContext.Request, requireCsrfHeader: false);
+            
+            // Next process the payload
+            if (data == null)
+            {
+                throw new InvalidRequestException("Invalid request data was received");
+            }
+            var queryParams = this.loginHandler.HandleAuthorizationResponse(data.PageUrl);
             var isOAuthResponse = !string.IsNullOrWhiteSpace(queryParams.Code) && !string.IsNullOrWhiteSpace(queryParams.State);
 
             // Set the login state from existing cookies
-            var csrfToken = this.GetCsrfTokenFromCookie();
+            var csrfToken = this.cookieManager.GetCookieSafe(this.Request, CookieManager.CookieName.csrf);
             var isLoggedIn = !string.IsNullOrWhiteSpace(csrfToken);
 
             if (isOAuthResponse)
             {
                 // Decrypt the temporary login cookie
-                var loginData = this.GetLoginDataFromCookie();
+                var loginData = this.cookieManager.GetLoginStateCookieSafe(this.Request);
                 if (loginData == null)
                 {
                     throw new InvalidCookieException("No valid login cookie was supplied in a call to end login");
@@ -98,6 +103,7 @@ namespace IO.Curity.OAuthAgent.Controllers
                 cookies.ForEach(cookie => {
 
                     var (name, value, options) = cookie;
+                    this.Response.Cookies.Delete(name);
                     this.Response.Cookies.Append(name, value, options);
                 });
 
@@ -111,36 +117,6 @@ namespace IO.Curity.OAuthAgent.Controllers
                 IsLoggedIn = isLoggedIn,
                 Csrf = csrfToken,
             };
-        }
-
-        /*
-         * Return data from the CSRF token if it exists
-         */
-        private string GetCsrfTokenFromCookie()
-        {
-            if (this.Request.Cookies != null)
-            {
-                var csrfCookieName = this.cookieManager.GetCookieName(CookieManager.CookieName.csrf);
-                var csrfCookie = this.Request.Cookies[csrfCookieName];
-                return this.cookieManager.DecryptCookieSafe(CookieManager.CookieName.csrf, csrfCookie);
-            }
-
-            return "";
-        }
-
-        /*
-         * Return the temp login cookie if received
-         */
-        private TempLoginData GetLoginDataFromCookie()
-        {
-            if (this.Request.Cookies != null)
-            {
-                var loginCookieName = this.cookieManager.GetCookieName(CookieManager.CookieName.login);
-                var tempLoginCookie = this.Request.Cookies[loginCookieName];
-                return this.cookieManager.DecryptLoginStateCookieSafe(tempLoginCookie);
-            }
-
-            return null;
         }
     }
 }

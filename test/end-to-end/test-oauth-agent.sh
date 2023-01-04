@@ -424,6 +424,7 @@ HTTP_STATUS=$(curl -i -s -X POST "$TOKEN_HANDLER_BASE_URL/refresh" \
 -H 'accept: application/json' \
 -H "x-example-csrf: $CSRF" \
 -b $MAIN_COOKIES_FILE \
+-c $MAIN_COOKIES_FILE \
 -o $RESPONSE_FILE -w '%{http_code}')
 if [ "$HTTP_STATUS" != '204' ]; then
   echo "*** Refresh request failed with status $HTTP_STATUS"
@@ -445,7 +446,7 @@ HTTP_STATUS=$(curl -i -s -X POST "$TOKEN_HANDLER_BASE_URL/refresh" \
 -H "x-example-csrf: $CSRF" \
 -b $MAIN_COOKIES_FILE \
 -o $RESPONSE_FILE -w '%{http_code}')
-if [ "$HTTP_STATUS" != '401' ]; then
+if [ "$HTTP_STATUS" != '204' ]; then
   echo "*** Refresh request failed with status $HTTP_STATUS"
   JSON=$(tail -n 1 $RESPONSE_FILE) 
   echo $JSON | jq
@@ -566,14 +567,14 @@ HTTP_STATUS=$(curl -i -s -X POST "$TOKEN_HANDLER_BASE_URL/login/end" \
 -H 'accept: application/json' \
 -d 'XXX' \
 -o $RESPONSE_FILE -w '%{http_code}')
-if [ "$HTTP_STATUS" != '500' ]; then
+if [ "$HTTP_STATUS" != '400' ]; then
   echo '*** Posting malformed JSON did not fail as expected'
   exit
 fi
 JSON=$(tail -n 1 $RESPONSE_FILE) 
 echo $JSON | jq
 CODE=$(jq -r .code <<< "$JSON")
-if [ "$CODE" != 'server_error' ]; then
+if [ "$CODE" != 'invalid_request' ]; then
    echo '*** Malformed JSON post returned an unexpected error code'
    exit
 fi

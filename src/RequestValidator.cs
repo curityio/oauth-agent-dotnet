@@ -1,4 +1,4 @@
-namespace IO.Curity.OAuthAgent.Utilities
+namespace IO.Curity.OAuthAgent
 {
     using System.Linq;
     using Microsoft.AspNetCore.Http;
@@ -13,14 +13,28 @@ namespace IO.Curity.OAuthAgent.Utilities
             this.configuration = configuration;
         }
 
-        public void ValidateRequest(HttpRequest request, RequestValidationOptions options)
+        public void ValidateRequest(HttpRequest request, bool requireTrustedOrigin = true, bool requireCsrfHeader = true, string csrfToken = "")
         {
-            if (options.RequireTrustedOrigin)
+            if (requireTrustedOrigin)
             {
                 var origin = request.Headers.Origin.FirstOrDefault() ?? "";
                 if (!this.IsValidOrigin(origin))
                 {
                     throw new UnauthorizedException($"The call is from an untrusted web origin: {origin}");
+                }
+            }
+
+            if (requireCsrfHeader)
+            {
+                var csrfHeader = request.Headers[$"x-{this.configuration.CookieNamePrefix}-csrf"];
+                if (csrfHeader.Count == 0)
+                {
+                    throw new UnauthorizedException("No CSRF cookie was supplied in a POST request");
+                }
+
+                if (csrfHeader != csrfToken)
+                {
+                    throw new UnauthorizedException("The CSRF header did not match the CSRF cookie in a POST request");
                 }
             }
         }
