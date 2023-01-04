@@ -8,6 +8,9 @@ namespace IO.Curity.OAuthAgent
     using IO.Curity.OAuthAgent.Entities;
     using IO.Curity.OAuthAgent.Utilities;
 
+    /*
+     * Encapsulates the main cookie logic, called from controllers
+     */ 
     public class CookieManager
     {
         public enum CookieName

@@ -26,6 +26,9 @@ namespace IO.Curity.OAuthAgent
         public string TokenEndpoint { get; set; }
         public string UserInfoEndpoint { get; set; }
 
+        /*
+         * Docker deployments provide configuration values via environment variables
+         */
         public void FromEnvironment()
         {
             this.Port = int.Parse(Get("PORT"));
@@ -51,7 +54,7 @@ namespace IO.Curity.OAuthAgent
             this.UserInfoEndpoint = Get("USERINFO_ENDPOINT");
         }
 
-        private String Get(string key, bool mandatory=true)
+        private String Get(string key, bool mandatory = true)
         {
             string value = Environment.GetEnvironmentVariable(key);
             if (mandatory && string.IsNullOrWhiteSpace(value))

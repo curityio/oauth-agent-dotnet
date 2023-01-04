@@ -47,6 +47,7 @@ namespace IO.Curity.OAuthAgent.Controllers
             var (name, value, options) = this.cookieManager.CreateTempLoginStateCookie(data.State, data.CodeVerifier);
             this.Response.Cookies.Append(name, value, options);
         
+            // Give the URL to the SPA, which manages its own redirect
             return new StartAuthorizationResponse(data.AuthorizationRequestUrl);
         }
 
@@ -88,7 +89,7 @@ namespace IO.Curity.OAuthAgent.Controllers
                 }
 
                 // The CSRF token is stored in memory and sent as a request header from each browser tab
-                // Avoid generating a new one unless needed, to prevent application problems
+                // In the event of logins being triggered from two browser tabs, return the existing value
                 if (string.IsNullOrWhiteSpace(csrfToken))
                 {
                     csrfToken = RandomStringGenerator.CreateCsrfToken();
@@ -98,7 +99,7 @@ namespace IO.Curity.OAuthAgent.Controllers
                 var tokenResponse = await this.authorizationServerClient.RedeemCodeForTokens(queryParams.Code, loginData.CodeVerifier);
                 this.idTokenValidator.Validate(tokenResponse.IdToken);
 
-                // Write tokens containing cookies
+                // Issue cookies containing tokens, and cookies are small when opaque tokens are used
                 var cookies = this.cookieManager.CreateCookies(tokenResponse, csrfToken);
                 cookies.ForEach(cookie => {
 

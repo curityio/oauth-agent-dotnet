@@ -10,6 +10,9 @@ namespace IO.Curity.OAuthAgent
     using IO.Curity.OAuthAgent.Entities;
     using IO.Curity.OAuthAgent.Exceptions;
 
+    /*
+     * A class to interact with the authorization server, using standards based messages
+     */
     public class AuthorizationServerClient
     {
         private readonly OAuthAgentConfiguration configuration;

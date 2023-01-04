@@ -21,8 +21,7 @@ namespace IO.Curity.OAuthAgent.Utilities
                 stringB64 += new string('=', 4 - paddings);
             }
 
-            byte[] encodedDataAsBytes = System.Convert.FromBase64String(stringB64);
-            return encodedDataAsBytes;
+            return System.Convert.FromBase64String(stringB64);
         }
     }
 }

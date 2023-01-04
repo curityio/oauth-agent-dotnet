@@ -4,7 +4,6 @@ namespace IO.Curity.OAuthAgent
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.DependencyInjection;
     using IO.Curity.OAuthAgent.Exceptions;
-    using IO.Curity.OAuthAgent.Utilities;
 
     public class Startup
     {
@@ -14,6 +13,9 @@ namespace IO.Curity.OAuthAgent
             this.configuration = configuration;
         }
 
+        /*
+         * The OAuth agent is a simple REST API
+         */
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             app.UseRouting();
@@ -30,6 +32,9 @@ namespace IO.Curity.OAuthAgent
             });
         }
 
+        /*
+         * CORS must be enabled if the OAuth agent is deployed to a different domain to the web origin, or disabled for same site deployments
+         */
         public void ConfigureServices(IServiceCollection services)
         {
             if (this.configuration.CorsEnabled)
@@ -56,9 +61,11 @@ namespace IO.Curity.OAuthAgent
             app.UseMiddleware<UnhandledExceptionMiddleware>();
         }
 
+        /*
+         * Dependencies to implement the OAuth agent are stateless so can be created as singletons
+         */
         public void ConfigureDependencies(IServiceCollection services)
         {
-            // These objects only store global configuration so are safe to be created as singletons
             services.AddSingleton<LoginHandler>();
             services.AddSingleton<CookieManager>();
             services.AddSingleton<AuthorizationServerClient>();

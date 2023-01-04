@@ -15,6 +15,9 @@ namespace IO.Curity.OAuthAgent
             Program.BuildWebHost().Run();
         }
 
+        /*
+         * The dev settings file is used only for development overrides, and not deployed
+         */
         private static IWebHost BuildWebHost()
         {
             var configurationRoot = new ConfigurationBuilder()
@@ -44,7 +47,6 @@ namespace IO.Curity.OAuthAgent
                     loggingBuilder.ClearProviders();
                     loggingBuilder.AddConfiguration(configurationRoot.GetSection("Logging"));
                     loggingBuilder.AddConsole();
-                    
                 })
                 .UseKestrel(options =>
                 {

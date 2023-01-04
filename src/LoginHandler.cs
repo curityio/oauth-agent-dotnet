@@ -7,6 +7,9 @@ namespace IO.Curity.OAuthAgent
     using IO.Curity.OAuthAgent.Exceptions;
     using IO.Curity.OAuthAgent.Utilities;
 
+    /*
+     * Change only this class to use different OpenID Connect request and response messages, such as pushed authorization requests
+     */
     public class LoginHandler
     {
         private readonly OAuthAgentConfiguration configuration;

@@ -5,7 +5,7 @@ namespace IO.Curity.OAuthAgent
     using IO.Curity.OAuthAgent.Exceptions;
 
     /*
-     * Make some sanity checks to ensure that the issuer and audience are configured correctly
+     * Before issuing cookies, make sanity checks to ensure that the issuer and audience are configured correctly
      * The ID token is received over a trusted back channel connection so signature checks are not needed
      * https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation
      */

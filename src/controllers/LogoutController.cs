@@ -32,7 +32,7 @@ namespace IO.Curity.OAuthAgent.Controllers
             var csrfToken = this.cookieManager.GetCookieSafe(this.Request, CookieManager.CookieName.csrf);
             this.requestValidator.ValidateRequest(this.HttpContext.Request, csrfToken: csrfToken);
 
-            // Next ensure that we have valid cookies
+            // Next ensure that we have valid cookies, so that the caller is authorized to logout
             var accessToken = this.cookieManager.GetCookieSafe(this.Request, CookieManager.CookieName.access);
             if (string.IsNullOrWhiteSpace(accessToken))
             {
@@ -47,7 +47,7 @@ namespace IO.Curity.OAuthAgent.Controllers
                 this.Response.Cookies.Append(name, value, options);
             });
 
-            // Return the logout URL to the SPA
+            // Return the logout request URL to the SPA
             var url = new StringBuilder();
             url.Append(this.configuration.LogoutEndpoint);
             url.Append($"?client_id={HttpUtility.UrlEncode(this.configuration.ClientID)}");

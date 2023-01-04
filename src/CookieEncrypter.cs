@@ -7,6 +7,9 @@
     using IO.Curity.OAuthAgent.Exceptions;
     using IO.Curity.OAuthAgent.Utilities;
 
+    /*
+     * Implements modern authenticated symmetric encryption and decryption via the Microsoft libraries
+     */
     public class CookieEncrypter
     {
         private const int VERSION_SIZE = 1;

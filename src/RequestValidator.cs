@@ -4,6 +4,9 @@ namespace IO.Curity.OAuthAgent
     using Microsoft.AspNetCore.Http;
     using IO.Curity.OAuthAgent.Exceptions;
 
+    /*
+     * Make basic web security checks in line with OWASP web security best practice
+     */
     public class RequestValidator
     {
         private readonly OAuthAgentConfiguration configuration;
@@ -15,6 +18,7 @@ namespace IO.Curity.OAuthAgent
 
         public void ValidateRequest(HttpRequest request, bool requireTrustedOrigin = true, bool requireCsrfHeader = true, string csrfToken = "")
         {
+            // The origin header is not sent on GET requests in same site deployments, but is verified otherwise
             if (requireTrustedOrigin)
             {
                 var origin = request.Headers.Origin.FirstOrDefault() ?? "";
@@ -24,6 +28,7 @@ namespace IO.Curity.OAuthAgent
                 }
             }
 
+            // The CSRF header is validated in POST requests after login
             if (requireCsrfHeader)
             {
                 var csrfHeader = request.Headers[$"x-{this.configuration.CookieNamePrefix}-csrf"];
