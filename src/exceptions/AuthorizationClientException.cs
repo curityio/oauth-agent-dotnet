@@ -11,14 +11,14 @@ namespace IO.Curity.OAuthAgent.Exceptions
 
              if (grant == GrantType.UserInfo && statusCode == 401)
              {
-                errorCode = "token_expired";
                 clientStatusCode = 401;
+                errorCode = "token_expired";
             }
 
             if (grant == GrantType.RefreshToken && responseText.Contains("invalid_grant"))
             {
-                errorCode = "session_expired";
                 clientStatusCode = 401;
+                errorCode = "session_expired";
             }
 
             var logMessage = $"{grant} request failed with response: {responseText}";
@@ -27,8 +27,8 @@ namespace IO.Curity.OAuthAgent.Exceptions
 
         private AuthorizationClientException(int statusCode, string code, string responseText) : base(
             "A request sent to the Authorization Server was rejected",
-            400,
-            "authorization_error",
+            statusCode,
+            code,
             responseText)
         {
         }

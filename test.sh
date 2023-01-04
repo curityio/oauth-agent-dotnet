@@ -7,4 +7,4 @@
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 cd test/integration
-dotnet test -l "console;verbosity=normal" --filter Category="LoginController"
+dotnet test -l "console;verbosity=normal" # --filter Category="RefreshTokenController"

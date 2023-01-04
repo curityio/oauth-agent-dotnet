@@ -2,7 +2,6 @@ namespace IO.Curity.OAuthAgent.Test
 {
     using System.Collections.Generic;
     using System.Linq;
-    using System.Net;
     using System.Net.Http;
     using System.Net.Http.Json;
     using System.Threading.Tasks;
@@ -12,9 +11,6 @@ namespace IO.Curity.OAuthAgent.Test
     using IO.Curity.OAuthAgent.Exceptions;
     using IO.Curity.OAuthAgent.Entities;
 
-    /*
-     * Tests against the login controller operations
-     */
     [Collection("default")]
     [Trait("Category", "LoginController")]
     public class LoginControllerTests
@@ -234,33 +230,31 @@ namespace IO.Curity.OAuthAgent.Test
             var (state, cookieContainer) = await TestUtils.StartLogin(this.state);
             var code = "4a4246d6-b4bd-11ec-b909-0242ac120002";
 
+            // On the next token request, make the mock authorization server reject token issuing with incorrect client secret behavior
+            this.state.MockAuthorizationServer.Given(
+                Request.Create().WithPath("/oauth/v2/oauth-token").UsingPost()
+            )
+            .RespondWith(
+                Response.Create()
+                    .WithStatusCode(400)
+                    .WithHeader("content-type", "application-json")
+                    .WithBody("{\"error\":\"invalid_client\"}")
+            );
+
             using (var handler = new HttpClientHandler { CookieContainer = cookieContainer })
             {
                 using (var client = new HttpClient(handler))
                 {
                     client.DefaultRequestHeaders.Add("origin", this.state.Configuration.TrustedWebOrigins[0]);
 
-                    // Make the mock authorization server reject with incorrect client secret behavior
-                    this.state.MockAuthorizationServer.Given(
-                        Request.Create().WithPath("/oauth/v2/oauth-token").UsingPost()
-                    )
-                    .AtPriority(1)
-                    .RespondWith(
-                        Response.Create()
-                            .WithStatusCode(400)
-                            .WithHeader("content-type", "application-json")
-                            .WithBody("{\"error\":\"invalid_client\"}")
-                    );
-
-                    // Send the code and state to the OAuth Agent, which will call the authorization server
-                    // For tests, Wiremock acts as the authorization server, and any code is accepted
                     var endUrl = $"{this.state.OAuthAgentBaseUrl}/login/end";
                     var spaLoginResponseUrl = $"https://www.example.local?code={code}&state={state}";
                     var requestData = new EndAuthorizationRequest(spaLoginResponseUrl);
                     
                     var response = await client.PostAsJsonAsync(endUrl, requestData);
-                    Assert.Equal(400, ((int)response.StatusCode));
+                    this.state.RegisterDefaultTokenResponseStub();
 
+                    Assert.Equal(400, ((int)response.StatusCode));
                     var data = await response.Content.ReadFromJsonAsync<ClientErrorResponse>();
                     Assert.Equal("authorization_error", data.Code);
                 }

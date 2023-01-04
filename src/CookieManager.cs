@@ -173,7 +173,7 @@ namespace IO.Curity.OAuthAgent
                 }
                 catch (Exception exception)
                 {
-                    logger.LogDebug(new EventId(), exception, $"Unable to decrypt {name} cookie");
+                    logger.LogInformation(new EventId(), exception, $"Unable to decrypt {name} cookie");
                 }
             }
             

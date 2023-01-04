@@ -53,6 +53,7 @@ namespace IO.Curity.OAuthAgent.Controllers
             }
 
             // Write updated cookies to response headers
+            
             var cookies = this.cookieManager.RefreshCookies(tokenResponse);
             cookies.ForEach(cookie => {
 
