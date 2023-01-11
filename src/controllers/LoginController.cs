@@ -97,7 +97,10 @@ namespace IO.Curity.OAuthAgent.Controllers
 
                 // Redeem the code for tokens, then validate the ID token
                 var tokenResponse = await this.authorizationServerClient.RedeemCodeForTokens(queryParams.Code, loginData.CodeVerifier);
-                this.idTokenValidator.Validate(tokenResponse.IdToken);
+                if (!string.IsNullOrWhiteSpace(tokenResponse.IdToken))
+                {
+                    this.idTokenValidator.Validate(tokenResponse.IdToken);
+                }
 
                 // Issue cookies containing tokens, and cookies are small when opaque tokens are used
                 var cookies = this.cookieManager.CreateCookies(tokenResponse, csrfToken);
