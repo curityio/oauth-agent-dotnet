@@ -30,7 +30,7 @@ namespace IO.Curity.OAuthAgent
             url.Append($"&redirect_uri={HttpUtility.UrlEncode(this.configuration.RedirectUri)}");
             url.Append("&response_type=code");
             url.Append($"&state={HttpUtility.UrlEncode(state)}");
-            url.Append($"&code_challenge={HttpUtility.UrlEncode(codeChallenge)}");
+            url.Append($"&code_challenge={codeChallenge}");
             url.Append("&code_challenge_method=S256");
 
             if (this.configuration.Scope != null)
