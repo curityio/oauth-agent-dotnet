@@ -26,7 +26,7 @@ namespace IO.Curity.OAuthAgent.Test
             this.OAuthAgentBaseUrl = "http://api.example.local:8080/oauth-agent";
             
             var configFilePath = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "../../../../../appsettings-dev.json");
-            
+
             var configurationRoot = new ConfigurationBuilder()
                 .AddJsonFile(configFilePath)
                 .Build();

@@ -18,6 +18,7 @@ namespace IO.Curity.OAuthAgent
         public bool CorsEnabled { get; set; }
         public string CookieNamePrefix  { get; set; }
         public string CookieDomain { get; set; }
+        public string CookieBasePath { get; set; }
         public string CookieEncryptionKey  { get; set; }
 
         public string Issuer { get; set; }
@@ -45,6 +46,7 @@ namespace IO.Curity.OAuthAgent
             this.CorsEnabled = bool.Parse(Get("CORS_ENABLED"));
             this.CookieNamePrefix = Get("COOKIE_NAME_PREFIX");
             this.CookieDomain = Get("COOKIE_DOMAIN");
+            this.CookieBasePath = Get("COOKIE_BASE_PATH");
             this.CookieEncryptionKey = Get("COOKIE_ENCRYPTION_KEY");
             
             this.Issuer = Get("ISSUER");

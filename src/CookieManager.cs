@@ -213,10 +213,13 @@ namespace IO.Curity.OAuthAgent
          */
         private CookieOptions GetCookieOptions(string cookiePath)
         {
+            var fullCookiePath = string.IsNullOrWhiteSpace(this.configuration.CookieBasePath)
+                ? cookiePath : this.configuration.CookieBasePath + cookiePath;
+
             bool useSsl = !string.IsNullOrWhiteSpace(this.configuration.ServerCertPath);
             return new CookieOptions {
                 Domain = this.configuration.CookieDomain,
-                Path = cookiePath, 
+                Path = fullCookiePath, 
                 Secure = useSsl,
                 HttpOnly = true,
                 SameSite = SameSiteMode.Strict,
