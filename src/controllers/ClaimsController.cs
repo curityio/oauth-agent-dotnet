@@ -45,9 +45,6 @@ namespace IO.Curity.OAuthAgent.Controllers
             }
 
             // Decode it and return its claims
-            System.Console.WriteLine("*** DEBUG ***");
-            System.Console.WriteLine(idToken);
-            System.Console.WriteLine("*** DEBUG ***");
             var token = new JwtSecurityToken(idToken);
             return token.Payload.SerializeToJson();
         }
