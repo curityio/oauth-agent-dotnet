@@ -29,7 +29,7 @@ namespace IO.Curity.OAuthAgent.Controllers
          * Return claims from the ID token to the SPA
          */
         [HttpGet("claims")]
-        public IDictionary<string, object> GetClaims()
+        public string GetClaims()
         {
             // In CORS setups, validate the web origin, whereas in same site deployments the origin header is not sent
             this.requestValidator.ValidateRequest(
@@ -45,10 +45,11 @@ namespace IO.Curity.OAuthAgent.Controllers
             }
 
             // Decode it and return its claims
+            System.Console.WriteLine("*** DEBUG ***");
+            System.Console.WriteLine(idToken);
+            System.Console.WriteLine("*** DEBUG ***");
             var token = new JwtSecurityToken(idToken);
-            var result = new Dictionary<string, object>();
-            token.Claims.ToList().ForEach(c => result.Add(c.Type, c.Value));
-            return result;
+            return token.Payload.SerializeToJson();
         }
     }
 }
