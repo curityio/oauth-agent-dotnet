@@ -71,7 +71,7 @@
 
         private static (byte [], byte[]) AesGcmEncrypt(byte[] plaintext, byte[] key, byte[] iv) {
             
-            AesGcm aesgcm = new AesGcm(key);
+            AesGcm aesgcm = new AesGcm(key, GCM_TAG_SIZE);
             byte[] tag = new byte[GCM_TAG_SIZE];
             byte[] ciphertext = new byte[plaintext.Length];
             aesgcm.Encrypt(iv, plaintext, ciphertext, tag);
@@ -81,7 +81,7 @@
 
         private static byte[] AesGcmDecrypt(byte[] ciphertext, byte[] key, byte[] iv, byte[] tag) {
             
-            AesGcm aesgcm = new AesGcm(key);
+            AesGcm aesgcm = new AesGcm(key, GCM_TAG_SIZE);
             byte[] plaintext = new byte[ciphertext.Length];
             aesgcm.Decrypt(iv, ciphertext, tag, plaintext);
             return plaintext;

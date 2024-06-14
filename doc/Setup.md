@@ -6,8 +6,8 @@ Follow the below steps to get set up for developing and testing the OAuth Agent 
 
 Ensure that these tools are installed locally:
 
-- [.NET SDK 7](https://dotnet.microsoft.com/en-us/download/visual-studio-sdks)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop)
+- [.NET SDK 8](https://dotnet.microsoft.com/en-us/download/visual-studio-sdks)
+- [Docker](https://www.docker.com/products/docker-desktop)
 - [jq](https://stedolan.github.io/jq/download/)
 
 Also get a license file for the Curity Identity Server:
@@ -60,10 +60,15 @@ Run some tests that require only a running OAuth Agent, with a mocked Identity S
 ## Run End-to-End Tests
 
 Run some tests that also use the Curity Identity Server.\
-First copy a license file into the `test/idsvr` folder and then run the following command:
+First copy a `license.json` file into the `test/end-to-end/idsvr` folder and then run the following command:
 
 ```bash
 ./test/end-to-end/idsvr/deploy.sh
+```
+Ensure that the OAuth Agent is running:
+
+```bash
+dotnet run
 ```
 
 Then run a test script that uses curl requests to verify the OAuth Agent's operations:

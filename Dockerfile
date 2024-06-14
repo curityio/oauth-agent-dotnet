@@ -1,7 +1,7 @@
-FROM mcr.microsoft.com/dotnet/aspnet:7.0
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
 
 WORKDIR /usr/api
-COPY bin/Release/net7.0/linux-x64/publish/*  /usr/api/
+COPY bin/Release/net8.0/linux-x64/publish/*  /usr/api/
 
 RUN groupadd --gid 10000 apiuser \
   && useradd --uid 10001 --gid apiuser --shell /bin/bash --create-home apiuser
